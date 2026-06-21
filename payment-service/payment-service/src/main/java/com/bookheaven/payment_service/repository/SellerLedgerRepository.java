@@ -1,0 +1,29 @@
+package com.bookheaven.payment_service.repository;
+
+import com.bookheaven.payment_service.entity.SellerLedger;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+import org.springframework.stereotype.Repository;
+
+import java.util.List;
+import java.util.UUID;
+
+@Repository
+public interface SellerLedgerRepository extends JpaRepository<SellerLedger, Long> {
+
+    List<SellerLedger> findBySettlementStatus(SellerLedger.SettlementStatus settlementStatus);
+
+    @Modifying
+    @Query("UPDATE SellerLedger s SET s.settlementStatus = :status, s.gatewayTransferId = :transferId WHERE s.settlementId = :settlementId")
+    int updateStatusBySettlementId(
+            @Param("settlementId") UUID settlementId,
+            @Param("status") SellerLedger.SettlementStatus status,
+            @Param("transferId") String transferId
+    );
+
+    @Modifying
+    @Query("UPDATE SellerLedger s SET s.settlementStatus = 'PENDING', s.settlementId = NULL, s.gatewayTransferId = NULL WHERE s.settlementStatus = 'FAILED'")
+    int resetFailedToPending();
+}

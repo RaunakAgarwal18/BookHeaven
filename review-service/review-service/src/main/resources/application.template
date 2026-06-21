@@ -1,0 +1,22 @@
+spring.application.name=REVIEW-SERVICE
+
+spring.datasource.driver-class-name=com.mysql.cj.jdbc.Driver
+spring.datasource.url=jdbc:mysql://localhost:3306/reactlibrarydatabase
+spring.datasource.username=
+spring.datasource.password=
+
+spring.redis.host=localhost
+spring.redis.port = 6379
+
+spring.jpa.hibernate.ddl-auto=update
+spring.jpa.show-sql=true
+spring.jpa.properties.hibernate.format_sql=true
+
+server.port=8083
+eureka.client.service-url.defaultZone=http://localhost:8761/eureka
+eureka.instance.instance-id=${spring.application.name}:${server.port}
+
+jwt.secret=
+jwt.expiration=
+
+logging.level.com.raunak.library.review_service=DEBUG

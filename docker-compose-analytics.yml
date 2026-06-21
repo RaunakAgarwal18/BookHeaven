@@ -1,0 +1,61 @@
+version: '3.8'
+
+services:
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: bookstore-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: bookstore-grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      - ./grafana-datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml
+
+  metabase:
+    image: metabase/metabase:latest
+    container_name: bookstore-metabase
+    ports:
+      - "3002:3000"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  loki:
+    image: grafana/loki:2.9.4
+    container_name: bookstore-loki
+    ports:
+      - "3100:3100"
+    volumes:
+      - loki-data:/loki
+    command: -config.file=/etc/loki/local-config.yaml
+
+  promtail:
+    image: grafana/promtail:2.9.4
+    container_name: bookstore-promtail
+    volumes:
+      - ./promtail-config.yml:/etc/promtail/config.yml
+      - /var/log:/var/log
+      # Mount each service's logs directory to Promtail
+      - ./user-service/user-service/logs:/app/logs/user-service
+      - ./book-service/book-service/logs:/app/logs/book-service
+      - ./cart-service/cart-service/logs:/app/logs/cart-service
+      - ./order-service/order-service/logs:/app/logs/order-service
+      - ./payment-service/payment-service/logs:/app/logs/payment-service
+      - ./email-service/email-service/logs:/app/logs/email-service
+      - ./review-service/review-service/logs:/app/logs/review-service
+      - ./api-gateway/gateway/logs:/app/logs/gateway
+    command: -config.file=/etc/promtail/config.yml
+    depends_on:
+      - loki
+
+volumes:
+  loki-data:
