@@ -14,4 +14,5 @@ public class OrderItemResponse {
     private String currency;
     private String sellerId;
     private String sellerUsername;
+    private com.bookheaven.order_service.entity.Order.OrderStatus status;
 }

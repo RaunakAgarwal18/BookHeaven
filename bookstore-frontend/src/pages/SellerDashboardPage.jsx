@@ -170,11 +170,14 @@ const SellerDashboardPage = () => {
     e.preventDefault();
     setError('');
     try {
+      const finalCopies = parseInt(formData.copies) || 0;
+      const finalPrice = parseFloat(formData.price) || 0;
+      
       if (editingBook) {
         // Update pricing/inventory for existing listing
         await apiClient.put(`/book/listing/${editingBook.listingId}`, {
-          copies: formData.copies,
-          price: formData.price,
+          copies: finalCopies,
+          price: finalPrice,
           currency: formData.currency
         });
         
@@ -188,7 +191,11 @@ const SellerDashboardPage = () => {
           img: formData.img
         });
       } else {
-        await apiClient.post('/book', formData);
+        await apiClient.post('/book', {
+          ...formData,
+          copies: finalCopies,
+          price: finalPrice
+        });
       }
       setShowModal(false);
       fetchSellerCatalog();
@@ -219,35 +226,48 @@ const SellerDashboardPage = () => {
   };
 
   const handleAutoFill = async () => {
-    if (!formData.isbn || formData.isbn.trim() === '') {
-      setError('Please enter an ISBN first to auto-fill details.');
+    if ((!formData.isbn || formData.isbn.trim() === '') && (!formData.title || formData.title.trim() === '')) {
+      setError('Please enter an ISBN or a Title first to auto-fill details.');
       return;
     }
     
     setError('');
     setIsFetchingDetails(true);
     try {
-      const isbn = formData.isbn.trim();
+      const isbn = formData.isbn ? formData.isbn.trim() : '';
+      const title = formData.title ? formData.title.trim() : '';
       let newDetails = {
         title: '',
         author: '',
         description: '',
         category: '',
-        img: ''
+        img: '',
+        isbn: ''
       };
 
       // 1. Try Google Books API
       try {
-        const gRes = await fetch(`https://www.googleapis.com/books/v1/volumes?q=isbn:${isbn}`);
+        const query = isbn ? `isbn:${isbn}` : `intitle:${title}`;
+        const gRes = await fetch(`https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}`);
         const gData = await gRes.json();
         
         if (gData.items && gData.items.length > 0) {
-          const vi = gData.items[0].volumeInfo;
+          const bestItem = gData.items.find(item => 
+             item.volumeInfo && item.volumeInfo.industryIdentifiers && 
+             item.volumeInfo.industryIdentifiers.some(id => id.type === 'ISBN_13' || id.type === 'ISBN_10')
+          ) || gData.items[0];
+
+          const vi = bestItem.volumeInfo;
           newDetails.title = vi.title || '';
           newDetails.author = vi.authors ? vi.authors.join(', ') : '';
           newDetails.description = vi.description || '';
           newDetails.category = (vi.categories && vi.categories.length > 0) ? mapCategory(vi.categories[0]) : '';
           newDetails.img = vi.imageLinks ? (vi.imageLinks.thumbnail || vi.imageLinks.smallThumbnail).replace('http:', 'https:') : '';
+          
+          if (!isbn && vi.industryIdentifiers) {
+             const isbnObj = vi.industryIdentifiers.find(id => id.type === 'ISBN_13' || id.type === 'ISBN_10');
+             if (isbnObj) newDetails.isbn = isbnObj.identifier;
+          }
         }
       } catch (e) {
         console.error('Google Books API failed:', e);
@@ -255,16 +275,19 @@ const SellerDashboardPage = () => {
 
       // 2. Try Open Library API to fill in any missing gaps
       try {
-        const olRes = await fetch(`https://openlibrary.org/search.json?isbn=${isbn}`);
+        const query = isbn ? `isbn=${isbn}` : `title=${encodeURIComponent(title)}`;
+        const olRes = await fetch(`https://openlibrary.org/search.json?${query}`);
         const olData = await olRes.json();
         
         if (olData.docs && olData.docs.length > 0) {
-          const doc = olData.docs[0];
+          const bestDoc = olData.docs.find(d => d.isbn && d.isbn.length > 0) || olData.docs[0];
+          const doc = bestDoc;
           
           if (!newDetails.title) newDetails.title = doc.title || '';
           if (!newDetails.author) newDetails.author = doc.author_name ? doc.author_name.join(', ') : '';
           if (!newDetails.category && doc.subject && doc.subject.length > 0) newDetails.category = mapCategory(doc.subject[0]);
           if (!newDetails.img && doc.cover_i) newDetails.img = `https://covers.openlibrary.org/b/id/${doc.cover_i}-M.jpg`;
+          if (!isbn && !newDetails.isbn && doc.isbn && doc.isbn.length > 0) newDetails.isbn = doc.isbn[0];
 
           // If description is still missing, make the extra call to Open Library's Work endpoint
           if (!newDetails.description && doc.key) {
@@ -282,7 +305,7 @@ const SellerDashboardPage = () => {
       }
 
       // 3. Apply the combined data to the form
-      if (newDetails.title || newDetails.author || newDetails.description || newDetails.category || newDetails.img) {
+      if (newDetails.title || newDetails.author || newDetails.description || newDetails.category || newDetails.img || newDetails.isbn) {
         setFormData(prev => ({
           ...prev,
           title: newDetails.title || prev.title,
@@ -290,9 +313,10 @@ const SellerDashboardPage = () => {
           description: newDetails.description || prev.description,
           category: newDetails.category || prev.category,
           img: newDetails.img || prev.img,
+          isbn: newDetails.isbn || prev.isbn,
         }));
       } else {
-        setError('No book found for this ISBN in any database. Please enter details manually.');
+        setError('No book found for this ISBN or Title in any database. Please enter details manually.');
       }
       
     } catch (err) {
@@ -450,14 +474,18 @@ const SellerDashboardPage = () => {
         )
       )}
 
-      {/* TAB CONTENT: ORDERS RECEIVED */}
+    {/* TAB CONTENT: ORDERS RECEIVED */}
       {activeTab === 'sales' && (
         ordersLoading ? (
           <div className="text-center py-8">Loading sales orders...</div>
         ) : orders.length > 0 ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
             {orders.filter(o => o.status !== 'FAILED').map(order => {
-              const statusStyle = getStatusStyle(order.status);
+              // Since the backend filters order.items to ONLY include the seller's items,
+              // we can look at the first item's status to know the seller's specific fulfillment state.
+              const sellerStatus = (order.items && order.items.length > 0 && order.items[0].status) ? order.items[0].status : order.status;
+              const statusStyle = getStatusStyle(sellerStatus);
+              
               return (
                 <div key={order.id} className="card glass-panel" style={{ padding: '1.5rem' }}>
                   {/* Order Card Header */}
@@ -477,7 +505,7 @@ const SellerDashboardPage = () => {
                           fontWeight: '600'
                         }}>
                           {statusStyle.icon}
-                          {order.status}
+                          {sellerStatus}
                         </span>
                       </div>
                       <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.25rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
@@ -487,7 +515,7 @@ const SellerDashboardPage = () => {
                     
                     {/* Action Panel for fulfillment */}
                     <div>
-                      {order.status === 'CONFIRMED' && (
+                      {sellerStatus === 'CONFIRMED' && (
                         <button 
                           onClick={() => handleUpdateOrderStatus(order.id, 'SHIPPED')}
                           style={{
@@ -504,7 +532,7 @@ const SellerDashboardPage = () => {
                           <Truck size={14} /> Ship Order Items
                         </button>
                       )}
-                      {order.status === 'SHIPPED' && (
+                      {sellerStatus === 'SHIPPED' && (
                         <button 
                           onClick={() => handleUpdateOrderStatus(order.id, 'DELIVERED')}
                           style={{
@@ -521,9 +549,9 @@ const SellerDashboardPage = () => {
                           <Check size={14} /> Mark as Delivered
                         </button>
                       )}
-                      {['DELIVERED', 'CANCELLED', 'FAILED', 'REFUNDED', 'PENDING'].includes(order.status) && (
+                      {['DELIVERED', 'CANCELLED', 'FAILED', 'REFUNDED', 'PENDING'].includes(sellerStatus) && (
                         <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
-                          Fulfillment locked ({order.status.toLowerCase()})
+                          Fulfillment locked ({sellerStatus.toLowerCase()})
                         </span>
                       )}
                     </div>
@@ -607,9 +635,30 @@ const SellerDashboardPage = () => {
             {error && <div className="form-error text-center mb-4">{error}</div>}
 
             <form onSubmit={handleSave}>
-              <div className="form-group">
-                <label className="form-label">Book Title *</label>
-                <input type="text" value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} required />
+              <div className="form-group" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: '1rem', marginBottom: '1rem' }}>
+                <div style={{ flex: 1 }}>
+                  <label className="form-label">Book Title *</label>
+                  <input type="text" value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} required />
+                </div>
+                <button 
+                  type="button" 
+                  onClick={handleAutoFill} 
+                  disabled={isFetchingDetails || (!formData.isbn && !formData.title)}
+                  style={{ 
+                    padding: '0 1rem', 
+                    height: '42px',
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: '0.5rem',
+                    backgroundColor: 'var(--primary-color)',
+                    opacity: (isFetchingDetails || (!formData.isbn && !formData.title)) ? 0.7 : 1,
+                    cursor: (isFetchingDetails || (!formData.isbn && !formData.title)) ? 'not-allowed' : 'pointer',
+                    whiteSpace: 'nowrap'
+                  }}
+                >
+                  <Search size={16} />
+                  {isFetchingDetails ? 'Fetching...' : 'Auto-Fill Details'}
+                </button>
               </div>
               <div className="form-group">
                 <label className="form-label">Author *</label>
@@ -652,32 +701,13 @@ const SellerDashboardPage = () => {
                 </div>
                 <div className="form-group">
                   <label className="form-label">ISBN *</label>
-                  <div style={{ display: 'flex', gap: '0.5rem' }}>
-                    <input type="text" value={formData.isbn} onChange={e => setFormData({...formData, isbn: e.target.value})} required style={{ flex: 1 }} />
-                    <button 
-                      type="button" 
-                      onClick={handleAutoFill} 
-                      disabled={isFetchingDetails || !formData.isbn}
-                      style={{ 
-                        padding: '0 1rem', 
-                        display: 'flex', 
-                        alignItems: 'center', 
-                        gap: '0.5rem',
-                        backgroundColor: 'var(--primary-color)',
-                        opacity: (isFetchingDetails || !formData.isbn) ? 0.7 : 1,
-                        cursor: (isFetchingDetails || !formData.isbn) ? 'not-allowed' : 'pointer'
-                      }}
-                    >
-                      <Search size={16} />
-                      {isFetchingDetails ? 'Fetching...' : 'Auto-Fill'}
-                    </button>
-                  </div>
+                  <input type="text" value={formData.isbn} onChange={e => setFormData({...formData, isbn: e.target.value})} required style={{ width: '100%' }} />
                 </div>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                 <div className="form-group">
                   <label className="form-label">Stock Copies *</label>
-                  <input type="number" min="0" value={formData.copies} onChange={e => setFormData({...formData, copies: parseInt(e.target.value) || 0})} required />
+                  <input type="number" min="0" value={formData.copies} onChange={e => setFormData({...formData, copies: e.target.value})} required />
                 </div>
                 <div className="form-group">
                   <label className="form-label">Pricing *</label>
@@ -705,7 +735,7 @@ const SellerDashboardPage = () => {
                       <option value="USD" style={{ backgroundColor: '#1e293b', color: '#f8fafc' }}>USD</option>
                       <option value="INR" style={{ backgroundColor: '#1e293b', color: '#f8fafc' }}>INR</option>
                     </select>
-                    <input type="number" step="0.01" min="0.01" value={formData.price} onChange={e => setFormData({...formData, price: parseFloat(e.target.value) || 0.01})} required style={{ flex: 1 }} />
+                    <input type="number" step="any" min="0" value={formData.price} onChange={e => setFormData({...formData, price: e.target.value})} required style={{ flex: 1 }} />
                   </div>
                 </div>
               </div>

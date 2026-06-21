@@ -17,6 +17,8 @@ public class OrderDeliveredEvent {
     private String orderId;
     private String shippingAddress;
     private List<DeliveredItem> items;
+    private List<DeliveredItem> newlyDeliveredItems;
+    private boolean isFinalDelivery;
 
     @Data
     @Builder

@@ -222,6 +222,7 @@ public class OrderServiceImpl implements OrderService {
         }
 
         order.setStatus(Order.OrderStatus.CONFIRMED);
+        order.getItems().forEach(item -> item.setStatus(Order.OrderStatus.CONFIRMED));
         order.setPaymentId(gatewayPaymentId);
         orderRepository.save(order);
 
@@ -268,6 +269,7 @@ public class OrderServiceImpl implements OrderService {
     public void failOrder(UUID orderId, String reason) {
         Order order = getOrderById(orderId);
         order.setStatus(Order.OrderStatus.FAILED);
+        order.getItems().forEach(item -> item.setStatus(Order.OrderStatus.FAILED));
         orderRepository.save(order);
     }
 
@@ -349,8 +351,10 @@ public class OrderServiceImpl implements OrderService {
                 throw new PaymentServiceException("Failed to initiate refund");
             }
             order.setStatus(Order.OrderStatus.REFUNDED);
+            order.getItems().forEach(item -> item.setStatus(Order.OrderStatus.REFUNDED));
         } else {
             order.setStatus(Order.OrderStatus.CANCELLED);
+            order.getItems().forEach(item -> item.setStatus(Order.OrderStatus.CANCELLED));
         }
 
         orderRepository.save(order);
@@ -391,10 +395,13 @@ public class OrderServiceImpl implements OrderService {
         orderStatusMachine.validateTransition(order.getStatus(), newStatus);
 
         order.setStatus(newStatus);
+        order.getItems().forEach(item -> item.setStatus(newStatus));
         orderRepository.save(order);
 
-        if (newStatus == Order.OrderStatus.DELIVERED && order.getEmail() != null) {
-            publishDeliveredEmail(order);
+        if (newStatus == Order.OrderStatus.SHIPPED && order.getEmail() != null) {
+            publishShippedEmail(order, true, order.getItems());
+        } else if (newStatus == Order.OrderStatus.DELIVERED && order.getEmail() != null) {
+            publishDeliveredEmail(order, true, order.getItems());
         }
 
         return AppUtil.toOrderResponse(order);
@@ -425,24 +432,44 @@ public class OrderServiceImpl implements OrderService {
         UUID sellerId = (UUID) authentication.getPrincipal();
         Order order = getOrderById(orderId);
 
-        boolean ownsItem = order.getItems().stream()
-                .anyMatch(item -> item.getSellerId() != null && item.getSellerId().equals(sellerId));
-        if (!ownsItem) {
+        List<OrderItem> sellerItems = order.getItems().stream()
+                .filter(item -> item.getSellerId() != null && item.getSellerId().equals(sellerId))
+                .toList();
+
+        if (sellerItems.isEmpty()) {
             throw new UnauthorizedOrderAccessException("You do not own any items in this order");
         }
 
         Order.OrderStatus newStatus = orderStatusMachine.parseStatus(status);
-        orderStatusMachine.validateTransition(order.getStatus(), newStatus);
+        
+        boolean alreadyUpdated = sellerItems.stream().allMatch(item -> item.getStatus() == newStatus);
+        if (alreadyUpdated) {
+            return applySellerView(AppUtil.toOrderResponse(order), sellerId);
+        }
 
-        order.setStatus(newStatus);
+        orderStatusMachine.validateTransition(sellerItems.get(0).getStatus(), newStatus);
+        sellerItems.forEach(item -> item.setStatus(newStatus));
+
+        boolean allItemsShipped = order.getItems().stream().allMatch(item -> item.getStatus() == Order.OrderStatus.SHIPPED || item.getStatus() == Order.OrderStatus.DELIVERED);
+        boolean allItemsDelivered = order.getItems().stream().allMatch(item -> item.getStatus() == Order.OrderStatus.DELIVERED);
+
+        boolean isFinalShipment = false;
+        boolean isFinalDelivery = false;
+
+        if (newStatus == Order.OrderStatus.SHIPPED && allItemsShipped && order.getStatus() != Order.OrderStatus.SHIPPED && order.getStatus() != Order.OrderStatus.DELIVERED) {
+            order.setStatus(Order.OrderStatus.SHIPPED);
+            isFinalShipment = true;
+        } else if (newStatus == Order.OrderStatus.DELIVERED && allItemsDelivered && order.getStatus() != Order.OrderStatus.DELIVERED) {
+            order.setStatus(Order.OrderStatus.DELIVERED);
+            isFinalDelivery = true;
+        }
+
         orderRepository.save(order);
 
         if (newStatus == Order.OrderStatus.SHIPPED && order.getEmail() != null) {
-            publishShippedEmail(order);
-        }
-
-        if (newStatus == Order.OrderStatus.DELIVERED && order.getEmail() != null) {
-            publishDeliveredEmail(order);
+            publishShippedEmail(order, isFinalShipment, sellerItems);
+        } else if (newStatus == Order.OrderStatus.DELIVERED && order.getEmail() != null) {
+            publishDeliveredEmail(order, isFinalDelivery, sellerItems);
         }
 
         return applySellerView(AppUtil.toOrderResponse(order), sellerId);
@@ -467,17 +494,17 @@ public class OrderServiceImpl implements OrderService {
         });
     }
 
-    private void publishShippedEmail(Order order) {
+    private void publishShippedEmail(Order order, boolean isFinalShipment, List<OrderItem> newlyShipped) {
         try {
-            orderEventProducer.publishOrderShippedEvent(orderEventMapper.buildShippedEvent(order));
+            orderEventProducer.publishOrderShippedEvent(orderEventMapper.buildShippedEvent(order, isFinalShipment, newlyShipped));
         } catch (Exception e) {
             log.error("Failed to publish OrderShippedEvent for order {}", order.getId(), e);
         }
     }
 
-    private void publishDeliveredEmail(Order order) {
+    private void publishDeliveredEmail(Order order, boolean isFinalDelivery, List<OrderItem> newlyDelivered) {
         try {
-            orderEventProducer.publishOrderDeliveredEvent(orderEventMapper.buildDeliveredEvent(order));
+            orderEventProducer.publishOrderDeliveredEvent(orderEventMapper.buildDeliveredEvent(order, isFinalDelivery, newlyDelivered));
         } catch (Exception e) {
             log.error("Failed to publish OrderDeliveredEvent for order {}", order.getId(), e);
         }

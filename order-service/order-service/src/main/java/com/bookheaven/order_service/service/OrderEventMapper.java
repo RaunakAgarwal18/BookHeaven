@@ -31,8 +31,16 @@ public class OrderEventMapper {
         return event;
     }
 
-    public OrderShippedEvent buildShippedEvent(Order order) {
+    public OrderShippedEvent buildShippedEvent(Order order, boolean isFinalShipment, List<OrderItem> newlyShipped) {
         List<OrderShippedEvent.ShippedItem> shippedItems = order.getItems().stream()
+                .map(item -> OrderShippedEvent.ShippedItem.builder()
+                        .bookTitle(item.getTitle())
+                        .quantity(item.getQuantity())
+                        .price(item.getPrice())
+                        .build())
+                .collect(Collectors.toList());
+
+        List<OrderShippedEvent.ShippedItem> newlyShippedItems = newlyShipped.stream()
                 .map(item -> OrderShippedEvent.ShippedItem.builder()
                         .bookTitle(item.getTitle())
                         .quantity(item.getQuantity())
@@ -53,11 +61,20 @@ public class OrderEventMapper {
                 .currency(order.getCurrency())
                 .paymentMethod(order.getPaymentMethod())
                 .items(shippedItems)
+                .newlyShippedItems(newlyShippedItems)
+                .isFinalShipment(isFinalShipment)
                 .build();
     }
 
-    public OrderDeliveredEvent buildDeliveredEvent(Order order) {
+    public OrderDeliveredEvent buildDeliveredEvent(Order order, boolean isFinalDelivery, List<OrderItem> newlyDelivered) {
         List<OrderDeliveredEvent.DeliveredItem> deliveredItems = order.getItems().stream()
+                .map(item -> OrderDeliveredEvent.DeliveredItem.builder()
+                        .bookTitle(item.getTitle())
+                        .quantity(item.getQuantity())
+                        .build())
+                .collect(Collectors.toList());
+
+        List<OrderDeliveredEvent.DeliveredItem> newlyDeliveredItems = newlyDelivered.stream()
                 .map(item -> OrderDeliveredEvent.DeliveredItem.builder()
                         .bookTitle(item.getTitle())
                         .quantity(item.getQuantity())
@@ -70,6 +87,8 @@ public class OrderEventMapper {
                 .orderId(order.getOrderReference())
                 .shippingAddress(formatAddress(order.getShippingAddress()))
                 .items(deliveredItems)
+                .newlyDeliveredItems(newlyDeliveredItems)
+                .isFinalDelivery(isFinalDelivery)
                 .build();
     }
 

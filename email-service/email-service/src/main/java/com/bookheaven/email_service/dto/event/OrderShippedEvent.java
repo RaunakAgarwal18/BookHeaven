@@ -24,6 +24,8 @@ public class OrderShippedEvent {
     private String currency;
     private String paymentMethod;
     private List<ShippedItem> items;
+    private List<ShippedItem> newlyShippedItems;
+    private boolean isFinalShipment;
 
     @Data
     @Builder

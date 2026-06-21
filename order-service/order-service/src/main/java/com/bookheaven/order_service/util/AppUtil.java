@@ -42,6 +42,7 @@ public class AppUtil {
                 .currency(item.getCurrency())
                 .sellerId(item.getSellerId() != null ? item.getSellerId().toString() : null)
                 .sellerUsername(item.getSellerUsername())
+                .status(item.getStatus())
                 .build();
     }
 

@@ -56,4 +56,9 @@ public class OrderItem {
 
     @Column(name = "seller_email", length = 150)
     private String sellerEmail;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false, length = 20)
+    @Builder.Default
+    private Order.OrderStatus status = Order.OrderStatus.PENDING;
 }

@@ -22,8 +22,13 @@ public class OrderShippedEmailHandler implements EmailHandler<OrderShippedEvent>
 
     @Override
     public void handle(OrderShippedEvent event) {
-        String subject = EmailConstant.ORDER_SHIPPED_MAIL_SUBJECT;
-        String itemsHtml = ItemRowBuilder.buildShippedItemsHtml(event.getItems());
+        String subject = event.isFinalShipment() ? EmailConstant.ORDER_SHIPPED_MAIL_SUBJECT : "Partial Shipment for Order " + event.getOrderId();
+        
+        // We use newlyShippedItems for the email body to show what just shipped
+        java.util.List<OrderShippedEvent.ShippedItem> itemsToShow = event.getNewlyShippedItems() != null && !event.getNewlyShippedItems().isEmpty()
+                ? event.getNewlyShippedItems() : event.getItems();
+        String itemsHtml = ItemRowBuilder.buildShippedItemsHtml(itemsToShow);
+        
         String address = event.getShippingAddress() != null ? event.getShippingAddress() : "N/A";
 
         String mailBody = MailTemplate.ORDER_SHIPPED_MAIL
@@ -32,13 +37,16 @@ public class OrderShippedEmailHandler implements EmailHandler<OrderShippedEvent>
                 .replace("{{SHIPPING_ADDRESS}}", address)
                 .replace("{{ITEMS_ROWS}}", itemsHtml);
 
-        String base64Pdf = pdfInvoiceGenerator.generateInvoicePdfBase64(event);
-        String filename = "Invoice_" + event.getOrderId() + ".pdf";
+        if (event.isFinalShipment()) {
+            String base64Pdf = pdfInvoiceGenerator.generateInvoicePdfBase64(event);
+            String filename = "Invoice_" + event.getOrderId() + ".pdf";
 
-        if (base64Pdf != null) {
-            mailSender.safeSendWithAttachmentAndReplyTo(event.getTo(), null, subject, mailBody, base64Pdf, filename, "Error sending Order Shipped notification, try again later!");
-        } else {
-            mailSender.safeSend(event.getTo(), subject, mailBody, "Error sending Order Shipped notification, try again later!");
+            if (base64Pdf != null) {
+                mailSender.safeSendWithAttachmentAndReplyTo(event.getTo(), null, subject, mailBody, base64Pdf, filename, "Error sending Order Shipped notification, try again later!");
+                return;
+            }
         }
+        
+        mailSender.safeSend(event.getTo(), subject, mailBody, "Error sending Order Shipped notification, try again later!");
     }
 }

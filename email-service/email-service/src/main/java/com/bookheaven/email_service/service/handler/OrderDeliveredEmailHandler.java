@@ -21,8 +21,11 @@ public class OrderDeliveredEmailHandler implements EmailHandler<OrderDeliveredEv
 
     @Override
     public void handle(OrderDeliveredEvent event) {
-        String subject = EmailConstant.ORDER_DELIVERED_MAIL_SUBJECT;
-        String itemsHtml = ItemRowBuilder.buildDeliveredItemsHtml(event.getItems());
+        String subject = event.isFinalDelivery() ? EmailConstant.ORDER_DELIVERED_MAIL_SUBJECT : "Partial Delivery for Order " + event.getOrderId();
+        
+        java.util.List<OrderDeliveredEvent.DeliveredItem> itemsToShow = event.getNewlyDeliveredItems() != null && !event.getNewlyDeliveredItems().isEmpty()
+                ? event.getNewlyDeliveredItems() : event.getItems();
+        String itemsHtml = ItemRowBuilder.buildDeliveredItemsHtml(itemsToShow);
         String address = event.getShippingAddress() != null ? event.getShippingAddress() : "N/A";
 
         String mailBody = MailTemplate.ORDER_DELIVERED_MAIL
