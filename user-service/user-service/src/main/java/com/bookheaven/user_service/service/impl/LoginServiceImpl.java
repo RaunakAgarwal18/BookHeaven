@@ -28,18 +28,21 @@ public class LoginServiceImpl implements LoginService {
     private RedisService redisService;
 
     public AuthResponse<AuthData> validateUser(LoginRequest request) {
-        User savedUser = userService.getUserByEmail(request.getEmail());
-        if (savedUser == null) {
+        User savedUser;
+        try {
+            savedUser = userService.getUserByEmail(request.getEmail());
+        } catch (com.bookheaven.user_service.exception.UserNotFoundException e) {
             log.error("No user found for email {}", request.getEmail());
-            throw new InvalidCredentialsException("Email or password incorrect");
+            throw new InvalidCredentialsException("Invalid credentials!!");
         }
-        if (savedUser.getPassword() == null) {
+        
+        if ("NOT_SET".equals(savedUser.getPassword()) || savedUser.getPassword() == null) {
             log.error("User {} has not set a password", request.getEmail());
-            throw new InvalidCredentialsException("Email or password incorrect");
+            throw new InvalidCredentialsException("Invalid credentials!!");
         }
         if (!passwordEncoder.matches(request.getPassword(), savedUser.getPassword())) {
             log.error("Invalid password for email {}", request.getEmail());
-            throw new InvalidCredentialsException("Email or password incorrect");
+            throw new InvalidCredentialsException("Invalid credentials!!");
         }
         log.info("Generating access tokens for : {}", request.getEmail());
         String role = savedUser.getPrimaryRole();

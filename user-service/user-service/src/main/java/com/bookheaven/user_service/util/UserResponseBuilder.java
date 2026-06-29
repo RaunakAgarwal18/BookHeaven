@@ -29,7 +29,7 @@ public class UserResponseBuilder {
                 .profilePicture(user.getProfilePicture())
                 .role(user.getPrimaryRole())
                 .razorpayAccountId(user.getRazorpayAccountId())
-                .requiresPasswordSetup(user.getPassword() == null)
+                .requiresPasswordSetup("NOT_SET".equals(user.getPassword()) || user.getPassword() == null)
                 .build();
     }
 }

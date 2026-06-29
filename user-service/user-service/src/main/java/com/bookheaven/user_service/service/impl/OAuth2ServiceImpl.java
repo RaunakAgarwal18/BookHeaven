@@ -92,7 +92,7 @@ public class OAuth2ServiceImpl implements OAuth2Service {
                     .username(username)
                     .firstName(nameParts[0])
                     .lastName(nameParts.length > 1 ? nameParts[1] : "")
-                    .password(null)
+                    .password("NOT_SET")
                     .profilePicture(userInfo.getPicture())
                     .authProvider(authProvider)
                     .providerId(userInfo.getProviderId())
@@ -118,7 +118,7 @@ public class OAuth2ServiceImpl implements OAuth2Service {
                 accessToken,
                 refreshToken,
                 role,
-                user.getPassword() == null
+                "NOT_SET".equals(user.getPassword()) || user.getPassword() == null
         );
     }
 }

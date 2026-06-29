@@ -107,7 +107,7 @@ public class UserServiceImpl implements UserService {
         User user = getSelfUser(authentication);
         log.info("Set password requested for user - {}", user.getEmail());
 
-        if (user.getPassword() != null) {
+        if (!"NOT_SET".equals(user.getPassword()) && user.getPassword() != null) {
             throw new IllegalStateException("Password is already set. Use change password instead.");
         }
 
