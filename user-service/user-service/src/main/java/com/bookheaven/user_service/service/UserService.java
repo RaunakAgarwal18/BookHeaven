@@ -20,6 +20,7 @@ public interface UserService {
     void deleteUser(UUID id);
     User getSelfUser(Authentication authentication);
     void changePassword(Authentication authentication, ChangePasswordRequest request);
+    void setPassword(Authentication authentication, com.bookheaven.user_service.dto.requestDto.ResetPasswordRequest request);
     User updateProfilePicture(Authentication authentication, MultipartFile file) throws IOException;
     User findByAuthProviderAndProviderId(User.AuthProvider provider, String providerId);
 }

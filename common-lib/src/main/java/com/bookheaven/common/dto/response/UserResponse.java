@@ -19,4 +19,5 @@ public class UserResponse {
     private java.util.List<AddressResponse> addresses;
     private String profilePicture;
     private String role;
+    private Boolean requiresPasswordSetup;
 }

@@ -29,6 +29,7 @@ public class UserResponseBuilder {
                 .profilePicture(user.getProfilePicture())
                 .role(user.getPrimaryRole())
                 .razorpayAccountId(user.getRazorpayAccountId())
+                .requiresPasswordSetup(user.getPassword() == null)
                 .build();
     }
 }

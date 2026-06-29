@@ -33,8 +33,8 @@ public class LoginServiceImpl implements LoginService {
             log.error("No user found for email {}", request.getEmail());
             throw new InvalidCredentialsException("Email or password incorrect");
         }
-        if (savedUser.getAuthProvider() != User.AuthProvider.LOCAL) {
-            log.error("OAuth user {} attempted password login", request.getEmail());
+        if (savedUser.getPassword() == null) {
+            log.error("User {} has not set a password", request.getEmail());
             throw new InvalidCredentialsException("Email or password incorrect");
         }
         if (!passwordEncoder.matches(request.getPassword(), savedUser.getPassword())) {
@@ -59,6 +59,7 @@ public class LoginServiceImpl implements LoginService {
                 savedUser.getProfilePicture(),
                 accessToken,
                 refreshToken,
-                role);
+                role,
+                false);
     }
 }

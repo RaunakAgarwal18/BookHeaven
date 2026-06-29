@@ -129,7 +129,8 @@ public class AuthServiceImpl implements AuthService {
                                                 savedUser.getProfilePicture(),
                                                 accessToken,
                                                 refreshToken,
-                                                userRole);
+                                                userRole,
+                                                false);
     }
 
     @Override

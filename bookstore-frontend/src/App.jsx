@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-route
 import { AnimatePresence, motion } from 'framer-motion';
 import Navbar from './components/Navbar';
 import ContactFooter from './components/ContactFooter';
+import SetPasswordModal from './components/SetPasswordModal';
 import HomePage from './pages/HomePage';
 import LoginPage from './pages/LoginPage';
 import SignupPage from './pages/SignupPage';
@@ -109,6 +110,7 @@ function App() {
         <AnimatedRoutes />
       </main>
       
+      <SetPasswordModal />
       <ContactFooter />
     </Router>
   );

@@ -16,7 +16,8 @@ public class AuthResponseBuilder {
             String profilePicture,
             String accessToken,
             String refreshToken,
-            String role
+            String role,
+            Boolean requiresPasswordSetup
     ) {
         UserDto user = UserDto.builder()
                 .userId(userId)
@@ -24,6 +25,7 @@ public class AuthResponseBuilder {
                 .email(email)
                 .profilePicture(profilePicture)
                 .role(role)
+                .requiresPasswordSetup(requiresPasswordSetup)
                 .build();
 
         TokenDto tokens = TokenDto.builder()

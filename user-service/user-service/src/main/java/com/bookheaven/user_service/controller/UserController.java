@@ -61,6 +61,14 @@ public class UserController {
         return ResponseEntity.ok("Password changed successfully.");
     }
 
+    @PostMapping("/me/set-password")
+    public ResponseEntity<String> setPassword(Authentication authentication,
+                                              @Valid @RequestBody com.bookheaven.user_service.dto.requestDto.ResetPasswordRequest request) {
+        log.info("Set password request received");
+        userService.setPassword(authentication, request);
+        return ResponseEntity.ok("Password set successfully.");
+    }
+
     @PostMapping("/me/profile-picture")
     public ResponseEntity<UserResponse> uploadProfilePicture(Authentication authentication,
                                                               @RequestParam("file") MultipartFile file) throws IOException {

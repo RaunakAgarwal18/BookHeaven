@@ -11,4 +11,5 @@ public class UserDto {
     private String email;
     private String profilePicture;
     private String role;
+    private Boolean requiresPasswordSetup;
 }

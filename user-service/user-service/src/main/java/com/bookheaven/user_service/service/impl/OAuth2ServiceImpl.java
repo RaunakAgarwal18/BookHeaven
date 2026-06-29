@@ -69,22 +69,14 @@ public class OAuth2ServiceImpl implements OAuth2Service {
 
         User user;
         if (existingUser != null) {
-            // User exists. Check if they are using the same auth provider
-            if (existingUser.getAuthProvider() == authProvider) {
-                user = existingUser;
-                // Update providerId if it was missing or changed
-                if (user.getProviderId() == null || !user.getProviderId().equals(userInfo.getProviderId())) {
-                    user.setProviderId(userInfo.getProviderId());
-                    userService.saveUser(user);
-                }
-                log.info("Existing OAuth user found by email: {}", user.getEmail());
-            } else {
-                // User exists but with a different provider (e.g. LOCAL)
-                throw new UserAlreadyExistException(
-                        "An account with this email already exists. " +
-                        "Please sign in using your email and password."
-                );
+            // User exists. Link account if necessary
+            user = existingUser;
+            // Update providerId if it was missing or changed
+            if (user.getProviderId() == null || !user.getProviderId().equals(userInfo.getProviderId())) {
+                user.setProviderId(userInfo.getProviderId());
+                userService.saveUser(user);
             }
+            log.info("Existing user found by email: {} - linking OAuth provider", user.getEmail());
         } else {
             // Create a brand new user
 
@@ -100,7 +92,7 @@ public class OAuth2ServiceImpl implements OAuth2Service {
                     .username(username)
                     .firstName(nameParts[0])
                     .lastName(nameParts.length > 1 ? nameParts[1] : "")
-                    .password(passwordEncoder.encode(UUID.randomUUID().toString()))
+                    .password(null)
                     .profilePicture(userInfo.getPicture())
                     .authProvider(authProvider)
                     .providerId(userInfo.getProviderId())
@@ -125,7 +117,8 @@ public class OAuth2ServiceImpl implements OAuth2Service {
                 user.getProfilePicture(),
                 accessToken,
                 refreshToken,
-                role
+                role,
+                user.getPassword() == null
         );
     }
 }

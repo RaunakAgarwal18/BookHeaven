@@ -103,6 +103,24 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    public void setPassword(Authentication authentication, com.bookheaven.user_service.dto.requestDto.ResetPasswordRequest request) {
+        User user = getSelfUser(authentication);
+        log.info("Set password requested for user - {}", user.getEmail());
+
+        if (user.getPassword() != null) {
+            throw new IllegalStateException("Password is already set. Use change password instead.");
+        }
+
+        if (!request.getNewPassword().equals(request.getConfirmPassword())) {
+            throw new PasswordMismatchException("New password and confirm password do not match.");
+        }
+
+        user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+        saveUser(user);
+        log.info("Password set successfully for user - {}", user.getEmail());
+    }
+
+    @Override
     public User updateProfilePicture(Authentication authentication, MultipartFile file) throws IOException {
         User user = getSelfUser(authentication);
         log.info("Profile picture upload requested for user - {}", user.getEmail());
