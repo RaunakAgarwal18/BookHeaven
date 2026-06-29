@@ -1,7 +1,7 @@
 package com.bookheaven.user_service.service.impl;
 
 import com.bookheaven.user_service.constant.AppConstants;
-import com.bookheaven.user_service.dto.requestDto.SendOtpRequest;
+import com.bookheaven.common.dto.request.SendOtpRequest;
 import com.bookheaven.user_service.exception.InvalidOtpException;
 import com.bookheaven.user_service.exception.OtpRateLimitException;
 import com.bookheaven.user_service.service.OtpService;

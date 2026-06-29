@@ -33,7 +33,7 @@ const HomePage = () => {
     }
   }, [isAuthenticated]);
 
-  // Debounced auto-search: fires 0.75s after user stops typing
+  // Debounced auto-search: fires 0.5s after user stops typing
   useEffect(() => {
     if (!searchTerm.trim()) {
       clearTimeout(debounceRef.current);
@@ -50,7 +50,7 @@ const HomePage = () => {
     debounceRef.current = setTimeout(() => {
       setPageNumber(0);
       fetchBooks(searchTerm, 0);
-    }, 750);
+    }, 500);
     return () => clearTimeout(debounceRef.current);
   }, [searchTerm]);
 
@@ -76,13 +76,13 @@ const HomePage = () => {
     fetchBooks(searchTerm, 0);
   };
 
-  const handleAddToCart = async (bookId) => {
+  const handleAddToCart = async (listingId) => {
     if (!isAuthenticated) {
       navigate('/login');
       return;
     }
     
-    await addToCart(bookId, 1);
+    await addToCart(listingId, 1);
     
     const error = useCartStore.getState().error;
     if (error) {
@@ -102,7 +102,7 @@ const HomePage = () => {
   };
 
   return (
-    <div className="container mt-8 mb-8">
+    <div style={{ width: '100%', maxWidth: '1500px', margin: '2rem auto', padding: '0 2rem 4rem 2rem' }}>
       {cartMessage && (
         <div style={{
           position: 'fixed',
@@ -121,26 +121,26 @@ const HomePage = () => {
           {cartMessage.text}
         </div>
       )}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
-        <div>
-          <h1 style={{ fontSize: '2.5rem', marginBottom: '0.5rem', background: 'linear-gradient(90deg, var(--primary-color), #8b5cf6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1.5rem' }}>
+        <div style={{ flex: '1 1 min-content' }}>
+          <h1 style={{ fontSize: '2.2rem', marginBottom: '0.2rem', background: 'linear-gradient(90deg, var(--primary-color), #8b5cf6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', lineHeight: 1.2 }}>
             Discover Your Next Great Read
           </h1>
-          <p style={{ color: 'var(--text-muted)', fontSize: '1.1rem' }}>Explore our vast collection of books across all genres.</p>
+          <p style={{ color: 'var(--text-muted)', fontSize: '1rem', margin: 0 }}>Explore our vast collection of books across all genres.</p>
         </div>
         
-        <form onSubmit={handleSearch} style={{ display: 'flex', gap: '0.5rem', width: '100%', maxWidth: '520px' }}>
+        <form onSubmit={handleSearch} style={{ display: 'flex', gap: '0.5rem', flex: '1 1 300px', maxWidth: '450px' }}>
           <div style={{ position: 'relative', flex: 1, minWidth: 0 }}>
             <input 
               type="text" 
-              placeholder="Search for books, authors, categories, or ISBNs..."
+              placeholder="Search by title, author, or ISBN..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              style={{ paddingLeft: '2.5rem', width: '100%' }}
+              style={{ paddingLeft: '2.4rem', width: '100%', height: '42px', fontSize: '0.9rem' }}
             />
-            <Search size={18} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+            <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
           </div>
-          <button type="submit">Search</button>
+          <button type="submit" style={{ height: '42px', padding: '0 1.5rem' }}>Search</button>
         </form>
       </div>
 
@@ -151,13 +151,14 @@ const HomePage = () => {
         </div>
       ) : books.length > 0 ? (
         <>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '2rem' }}>
-            {books.map((book) => (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '1.5rem' }}>
+            {books.map((book, index) => (
               <BookCard 
                 key={book.bookId} 
                 book={book} 
+                index={index}
                 onAddToCart={handleAddToCart} 
-                isWishlisted={wishlistIds?.has(book.bookId)}
+                isWishlisted={wishlistIds?.has(String(book.bookId))}
                 onToggleWishlist={handleToggleWishlist}
               />
             ))}

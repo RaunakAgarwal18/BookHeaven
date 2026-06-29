@@ -1,8 +1,8 @@
 package com.bookheaven.order_service.service.clientService;
 
-import com.bookheaven.order_service.dto.paymentRequestDto.InitiatePaymentRequest;
+import com.bookheaven.common.dto.request.InitiatePaymentRequest;
 import com.bookheaven.order_service.dto.paymentRequestDto.RefundPaymentRequest;
-import com.bookheaven.order_service.dto.paymentResponseDto.InitiatePaymentResponse;
+import com.bookheaven.common.dto.response.InitiatePaymentResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;

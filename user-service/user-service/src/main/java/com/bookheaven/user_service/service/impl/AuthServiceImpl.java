@@ -2,9 +2,10 @@ package com.bookheaven.user_service.service.impl;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.bookheaven.user_service.dto.event.WelcomeEmailEvent;
+import com.bookheaven.common.dto.event.WelcomeEmailEvent;
 import com.bookheaven.user_service.dto.requestDto.SignupRequest;
 import com.bookheaven.user_service.dto.responseDto.*;
+import com.bookheaven.common.dto.response.UserResponse;
 import com.bookheaven.user_service.entity.User;
 import com.bookheaven.user_service.exception.InvalidTokenException;
 import com.bookheaven.user_service.exception.SignupSessionExpiredException;

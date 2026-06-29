@@ -1,10 +1,10 @@
 package com.bookheaven.email_service.component;
 
-import com.bookheaven.email_service.dto.event.OrderConfirmedEvent;
-import com.bookheaven.email_service.dto.event.OrderShippedEvent;
-import com.bookheaven.email_service.dto.event.OrderDeliveredEvent;
-import com.bookheaven.email_service.dto.event.PaymentFailedEvent;
-import com.bookheaven.email_service.dto.event.WelcomeEmailEvent;
+import com.bookheaven.common.dto.event.OrderConfirmedEvent;
+import com.bookheaven.common.dto.event.OrderShippedEvent;
+import com.bookheaven.common.dto.event.OrderDeliveredEvent;
+import com.bookheaven.common.dto.event.PaymentFailedEvent;
+import com.bookheaven.common.dto.event.WelcomeEmailEvent;
 import com.bookheaven.email_service.service.EmailService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -57,7 +57,7 @@ public class EmailConsumer {
 
     @RabbitListener(queues = SELLER_ORDER_QUEUE)
     public void consumeSellerOrderNotification(
-            com.bookheaven.email_service.dto.event.SellerOrderEvent event, Message message) {
+            com.bookheaven.common.dto.event.SellerOrderEvent event, Message message) {
         String messageId = message.getMessageProperties().getMessageId();
         if (tracker.isAlreadyProcessed(messageId)) {
             log.warn("Duplicate seller-order message [{}] — skipping to prevent duplicate email", messageId);
@@ -90,7 +90,7 @@ public class EmailConsumer {
     }
 
     @RabbitListener(queues = CONTACT_QUEUE)
-    public void consumeContactEmail(com.bookheaven.email_service.dto.event.ContactEmailEvent event, Message message) {
+    public void consumeContactEmail(com.bookheaven.common.dto.event.ContactEmailEvent event, Message message) {
         String messageId = message.getMessageProperties().getMessageId();
         if (tracker.isAlreadyProcessed(messageId)) {
             log.warn("Duplicate contact message [{}] — skipping to prevent duplicate email", messageId);
@@ -101,7 +101,7 @@ public class EmailConsumer {
     }
 
     @RabbitListener(queues = MISSING_RAZORPAY_QUEUE)
-    public void consumeMissingRazorpayIdEmail(com.bookheaven.email_service.dto.event.MissingRazorpayIdEvent event, Message message) {
+    public void consumeMissingRazorpayIdEmail(com.bookheaven.common.dto.event.MissingRazorpayIdEvent event, Message message) {
         String messageId = message.getMessageProperties().getMessageId();
         if (tracker.isAlreadyProcessed(messageId)) {
             log.warn("Duplicate missing-razorpay message [{}] — skipping to prevent duplicate email", messageId);

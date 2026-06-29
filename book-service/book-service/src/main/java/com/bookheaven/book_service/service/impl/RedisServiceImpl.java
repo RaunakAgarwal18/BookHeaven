@@ -45,4 +45,10 @@ public class RedisServiceImpl implements RedisService {
             redisTemplate.delete(keys);
         }
     }
+
+    @Override
+    public boolean setIfAbsent(String key, String value, long timeoutSeconds) {
+        Boolean success = redisTemplate.opsForValue().setIfAbsent(key, value, timeoutSeconds, TimeUnit.SECONDS);
+        return Boolean.TRUE.equals(success);
+    }
 }

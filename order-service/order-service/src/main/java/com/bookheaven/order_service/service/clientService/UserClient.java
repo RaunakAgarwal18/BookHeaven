@@ -1,6 +1,6 @@
 package com.bookheaven.order_service.service.clientService;
 
-import com.bookheaven.order_service.dto.userResponseDto.UserResponse;
+import com.bookheaven.common.dto.response.UserResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;

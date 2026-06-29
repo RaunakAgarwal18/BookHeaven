@@ -11,6 +11,8 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.reactive.CorsConfigurationSource;
 import org.springframework.web.cors.reactive.UrlBasedCorsConfigurationSource;
 
+import reactor.core.publisher.Mono;
+
 import java.util.List;
 
 @Configuration
@@ -39,6 +41,14 @@ public class SecurityConfig {
                         .pathMatchers("/v3/api-docs/**").permitAll()
                         .pathMatchers("/*/v3/api-docs").permitAll()
                         .anyExchange().authenticated()
+                )
+                .exceptionHandling(exceptionHandling -> exceptionHandling
+                        .authenticationEntryPoint((swe, e) -> 
+                            Mono.fromRunnable(() -> swe.getResponse().setStatusCode(org.springframework.http.HttpStatus.UNAUTHORIZED))
+                        )
+                        .accessDeniedHandler((swe, e) -> 
+                            Mono.fromRunnable(() -> swe.getResponse().setStatusCode(org.springframework.http.HttpStatus.FORBIDDEN))
+                        )
                 )
                 .addFilterAt(jwtFilter, SecurityWebFiltersOrder.AUTHENTICATION)
                 .build();

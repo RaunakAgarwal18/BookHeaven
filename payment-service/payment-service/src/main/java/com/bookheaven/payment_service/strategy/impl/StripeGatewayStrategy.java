@@ -1,6 +1,6 @@
 package com.bookheaven.payment_service.strategy.impl;
 
-import com.bookheaven.payment_service.dto.requestDto.InitiatePaymentRequest;
+import com.bookheaven.common.dto.request.InitiatePaymentRequest;
 import com.bookheaven.payment_service.dto.requestDto.RefundRequest;
 import com.bookheaven.payment_service.dto.strategy.GatewayOrderResponse;
 import com.bookheaven.payment_service.dto.strategy.WebhookPayload;
@@ -127,13 +127,17 @@ public class StripeGatewayStrategy implements PaymentGatewayStrategy {
     }
 
     @Override
-    public String refund(Payment payment, RefundRequest request) {
+    public String refund(Payment payment, RefundRequest request, String idempotencyKey) {
         try {
             RefundCreateParams params = RefundCreateParams.builder()
                     .setPaymentIntent(payment.getGatewayPaymentId())
                     .build();
 
-            Refund refund = Refund.create(params);
+            com.stripe.net.RequestOptions requestOptions = com.stripe.net.RequestOptions.builder()
+                    .setIdempotencyKey(idempotencyKey)
+                    .build();
+
+            Refund refund = Refund.create(params, requestOptions);
             return refund.getId();
         } catch (StripeException e) {
             log.error("Stripe error while processing refund", e);

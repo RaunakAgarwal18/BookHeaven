@@ -1,17 +1,19 @@
 :root {
-  --bg-color: #0f172a;
+  --bg-color: #030014;
   --text-color: #f8fafc;
   --text-muted: #94a3b8;
-  --primary-color: #3b82f6;
-  --primary-hover: #2563eb;
-  --secondary-color: #1e293b;
-  --border-color: #334155;
-  --danger-color: #ef4444;
+  --primary-color: #8b5cf6;
+  --primary-hover: #7c3aed;
+  --secondary-color: #1e1b4b;
+  --border-color: rgba(255, 255, 255, 0.08);
+  --danger-color: #f43f5e;
   --success-color: #10b981;
-  --card-bg: #1e293b;
-  --radius: 8px;
-  --transition: all 0.3s ease;
-  font-family: 'Inter', system-ui, Avenir, Helvetica, Arial, sans-serif;
+  --card-bg: rgba(15, 23, 42, 0.4);
+  --radius: 16px;
+  --transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+  --glow-color: rgba(139, 92, 246, 0.35);
+  --accent-gradient: linear-gradient(135deg, #38bdf8, #8b5cf6, #ec4899);
+  font-family: 'Outfit', 'Inter', system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
   font-weight: 400;
   color-scheme: dark;
@@ -35,6 +37,10 @@ main {
 
 body {
   background-color: var(--bg-color);
+  background-image: 
+    radial-gradient(at 0% 0%, rgba(139, 92, 246, 0.15) 0px, transparent 50%),
+    radial-gradient(at 100% 100%, rgba(56, 189, 248, 0.1) 0px, transparent 50%);
+  background-attachment: fixed;
   color: var(--text-color);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -56,20 +62,28 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 button {
-  border-radius: var(--radius);
-  border: 1px solid transparent;
-  padding: 0.6em 1.2em;
-  font-size: 1rem;
-  font-weight: 500;
+  border-radius: 50px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  padding: 0.6em 1.4em;
+  font-size: 0.95rem;
+  font-weight: 600;
   font-family: inherit;
-  background-color: var(--primary-color);
+  background: var(--accent-gradient);
+  background-size: 200% 200%;
   color: #fff;
   cursor: pointer;
   transition: var(--transition);
+  box-shadow: 0 4px 14px 0 rgba(139, 92, 246, 0.25);
+  position: relative;
+  overflow: hidden;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.2);
 }
 
 button:hover {
-  background-color: var(--primary-hover);
+  border-color: rgba(255, 255, 255, 0.4);
+  transform: translateY(-2px);
+  box-shadow: 0 10px 20px -3px rgba(139, 92, 246, 0.4), 0 0 20px 0 var(--glow-color);
+  background-position: 100% 50%;
 }
 
 button:disabled {
@@ -103,9 +117,9 @@ input:focus, select:focus, textarea:focus {
 }
 
 .container {
-  max-width: 1200px;
+  max-width: 1600px;
   margin: 0 auto;
-  padding: 0 1rem;
+  padding: 0 2rem;
   padding-bottom: 4rem;
 }
 
@@ -145,23 +159,56 @@ input:focus, select:focus, textarea:focus {
 
 /* Card styles */
 .card {
-  background-color: var(--card-bg);
+  background: rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   border-radius: var(--radius);
-  border: 1px solid var(--border-color);
+  border: 1px solid rgba(255, 255, 255, 0.15);
   padding: 1.5rem;
-  transition: var(--transition);
+  transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.4s ease, border-color 0.4s ease, background 0.4s ease;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 4px 30px rgba(0,0,0,0.25);
+  transform: translateY(0) scale(1);
 }
 
 .card:hover {
-  border-color: var(--primary-color);
-  transform: translateY(-2px);
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  border-color: rgba(139, 92, 246, 0.4);
+  box-shadow: 0 20px 40px -10px rgba(139, 92, 246, 0.3), 0 10px 15px -5px rgba(0, 0, 0, 0.5);
+  background: rgba(30, 30, 45, 0.6);
+  transform: translateY(-8px) scale(1.02);
+  z-index: 10;
+}
+
+.card:hover .card-image {
+  transform: scale(1.08);
 }
 
 .glass-panel {
-  background: rgba(30, 41, 59, 0.7);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(30, 41, 59, 0.6);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: var(--radius);
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+}
+
+/* Spotlight Effect */
+.spotlight {
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+  background: radial-gradient(400px circle at var(--mouse-x, 0px) var(--mouse-y, 0px), var(--glow-color), transparent 60%);
+  opacity: 0;
+  transition: opacity 0.5s ease;
+  z-index: 0;
+}
+
+.card:hover .spotlight {
+  opacity: 1;
+}
+
+.card-content {
+  position: relative;
+  z-index: 1;
 }

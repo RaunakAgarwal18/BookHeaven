@@ -72,7 +72,12 @@
 			<artifactId>spring-boot-starter-test</artifactId>
 			<scope>test</scope>
 		</dependency>
-	</dependencies>
+	        <dependency>
+            <groupId>com.bookheaven</groupId>
+            <artifactId>common-lib</artifactId>
+            <version>0.0.1-SNAPSHOT</version>
+        </dependency>
+    </dependencies>
 
 	<dependencyManagement>
 		<dependencies>
@@ -83,7 +88,12 @@
 				<type>pom</type>
 				<scope>import</scope>
 			</dependency>
-		</dependencies>
+		        <dependency>
+            <groupId>com.bookheaven</groupId>
+            <artifactId>common-lib</artifactId>
+            <version>0.0.1-SNAPSHOT</version>
+        </dependency>
+    </dependencies>
 	</dependencyManagement>
 
 	<build>
@@ -104,3 +114,4 @@
 	</build>
 
 </project>
+

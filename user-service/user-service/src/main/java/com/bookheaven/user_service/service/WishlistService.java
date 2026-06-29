@@ -1,6 +1,6 @@
 package com.bookheaven.user_service.service;
 
-import com.bookheaven.user_service.dto.BookDto;
+import com.bookheaven.common.dto.response.BookPublicResponse;
 import org.springframework.security.core.Authentication;
 
 import java.util.List;
@@ -10,5 +10,5 @@ public interface WishlistService {
     void addWishlist(Authentication authentication, Long bookId);
     void removeWishlist(Authentication authentication, Long bookId);
     Set<Long> getWishlistIds(Authentication authentication);
-    List<BookDto> getWishlistDetails(Authentication authentication);
+    List<BookPublicResponse> getWishlistDetails(Authentication authentication);
 }

@@ -1,4 +1,4 @@
-package com.bookheaven.email_service.dto.response;
+package com.bookheaven.common.dto.response;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;

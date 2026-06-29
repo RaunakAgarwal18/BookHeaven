@@ -89,6 +89,10 @@ public class Order {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
+    @Version
+    @Column(name = "version")
+    private Long version;
+
     public enum OrderStatus {
         PENDING,       // order created, payment not done
         CONFIRMED,     // payment successful
@@ -96,6 +100,10 @@ public class Order {
         DELIVERED,     // order delivered to user
         FAILED,        // payment failed
         CANCELLED,     // user cancelled
-        REFUNDED       // refund processed
+        PARTIALLY_CANCELLED,
+        REFUND_IN_PROGRESS,
+        PARTIALLY_REFUND_IN_PROGRESS,
+        REFUNDED,      // refund processed
+        PARTIALLY_REFUNDED
     }
 }

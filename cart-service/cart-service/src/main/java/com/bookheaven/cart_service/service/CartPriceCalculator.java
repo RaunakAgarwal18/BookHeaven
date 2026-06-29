@@ -1,6 +1,6 @@
 package com.bookheaven.cart_service.service;
 
-import com.bookheaven.cart_service.dto.cartResponseDto.CartItemResponse;
+import com.bookheaven.common.dto.response.CartItemResponse;
 import com.bookheaven.cart_service.dto.cartResponseDto.CouponResponse;
 import com.bookheaven.cart_service.entity.Cart;
 import lombok.RequiredArgsConstructor;
@@ -74,10 +74,9 @@ public class CartPriceCalculator {
             }
         }
         
-        double taxableAmount = Math.max(0.0, subtotal - discountAmount);
-        double taxAmount = taxableAmount * taxRate;
-        double shippingAmount = taxableAmount * shippingRate;
-        double finalTotal = Math.round((taxableAmount + taxAmount + shippingAmount) * 100.0) / 100.0;
+        double taxAmount = subtotal * taxRate;
+        double shippingAmount = subtotal * shippingRate;
+        double finalTotal = Math.round(((subtotal - discountAmount) + taxAmount + shippingAmount) * 100.0) / 100.0;
 
         return new PricingResult(
             subtotal, 

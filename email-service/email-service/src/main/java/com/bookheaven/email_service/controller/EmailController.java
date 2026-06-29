@@ -1,8 +1,8 @@
 package com.bookheaven.email_service.controller;
 
-import com.bookheaven.email_service.dto.response.EmailResponse;
-import com.bookheaven.email_service.dto.request.PasswordResetRequest;
-import com.bookheaven.email_service.dto.request.SendOtpRequest;
+import com.bookheaven.common.dto.response.EmailResponse;
+import com.bookheaven.common.dto.request.PasswordResetRequest;
+import com.bookheaven.common.dto.request.SendOtpRequest;
 import com.bookheaven.email_service.service.EmailService;
 import com.bookheaven.email_service.util.ApiUtil;
 import lombok.RequiredArgsConstructor;

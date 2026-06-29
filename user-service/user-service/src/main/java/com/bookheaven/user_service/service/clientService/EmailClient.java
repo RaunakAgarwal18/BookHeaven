@@ -1,7 +1,7 @@
 package com.bookheaven.user_service.service.clientService;
 
-import com.bookheaven.user_service.dto.requestDto.PasswordResetRequest;
-import com.bookheaven.user_service.dto.requestDto.SendOtpRequest;
+import com.bookheaven.common.dto.request.PasswordResetRequest;
+import com.bookheaven.common.dto.request.SendOtpRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;

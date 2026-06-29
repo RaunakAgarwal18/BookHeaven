@@ -38,6 +38,9 @@ public class BookDocument {
     @Field(type = FieldType.Text)
     private String img;
 
+    @Field(type = FieldType.Long)
+    private Long cheapestListingId;
+
     @Field(type = FieldType.Double)
     private Double lowestPrice;
 

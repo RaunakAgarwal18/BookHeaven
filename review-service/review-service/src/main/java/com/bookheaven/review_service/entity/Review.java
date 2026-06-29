@@ -73,4 +73,8 @@ public class Review {
     @Column(name = "user_id", columnDefinition = "VARCHAR(36)")
     @Builder.Default
     private Set<UUID> upvotedUserIds = new HashSet<>();
+
+    @Version
+    @Column(name = "version")
+    private Long version;
 }

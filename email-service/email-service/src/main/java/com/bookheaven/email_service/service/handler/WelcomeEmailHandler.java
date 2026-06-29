@@ -2,7 +2,7 @@ package com.bookheaven.email_service.service.handler;
 
 import com.bookheaven.email_service.constants.EmailConstant;
 import com.bookheaven.email_service.constants.MailTemplate;
-import com.bookheaven.email_service.dto.event.WelcomeEmailEvent;
+import com.bookheaven.common.dto.event.WelcomeEmailEvent;
 import com.bookheaven.email_service.util.EmailSenderUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;

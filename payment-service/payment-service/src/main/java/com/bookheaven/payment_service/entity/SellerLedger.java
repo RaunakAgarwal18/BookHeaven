@@ -19,6 +19,8 @@ import java.util.UUID;
         @Index(name = "idx_ledger_order_id", columnList = "order_id"),
         @Index(name = "idx_ledger_status", columnList = "settlement_status"),
         @Index(name = "idx_ledger_settlement_id", columnList = "settlement_id")
+}, uniqueConstraints = {
+        @UniqueConstraint(columnNames = {"order_item_id"})
 })
 public class SellerLedger {
 
@@ -65,6 +67,10 @@ public class SellerLedger {
     @Column(name = "gateway_transfer_id", length = 100)
     private String gatewayTransferId;
 
+    @Version
+    @Column(name = "version")
+    private Long version;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -77,6 +83,7 @@ public class SellerLedger {
         PENDING,
         PROCESSING,
         SETTLED,
-        FAILED
+        FAILED,
+        VOIDED      // Order was cancelled/refunded before the payout cycle ran
     }
 }

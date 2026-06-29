@@ -1,6 +1,6 @@
 package com.bookheaven.payment_service.component;
 
-import com.bookheaven.payment_service.dto.event.SellerPayoutEvent;
+import com.bookheaven.common.dto.event.SellerPayoutEvent;
 import com.bookheaven.payment_service.entity.SellerLedger;
 import com.bookheaven.payment_service.repository.SellerLedgerRepository;
 import lombok.RequiredArgsConstructor;
@@ -24,19 +24,22 @@ public class EndOfDaySettlementScheduler {
     private final SellerLedgerRepository ledgerRepository;
     private final RabbitTemplate rabbitTemplate;
 
-    @Scheduled(cron = "0 50 23 * * ?") // 11:50 PM daily
+    @Scheduled(cron = "0 50 23 1,15 * ?") // 11:50 PM on the 1st and 15th of every month
     @Transactional
-    public void triggerDailySettlement() {
-        log.info("Triggering EOD Seller Payout Consolidation Batch Job");
+    public void triggerBiWeeklySettlement() {
+        log.info("Triggering Bi-Weekly Seller Payout Consolidation Batch Job");
         executeSettlementAggregation();
     }
 
     @Transactional
     public void executeSettlementAggregation() {
-        // 1. Fetch all pending ledger entries
-        List<SellerLedger> pendingEntries = ledgerRepository.findBySettlementStatus(SellerLedger.SettlementStatus.PENDING);
+        // 1. Calculate the escrow cutoff date (8 days ago) to respect the 7-day refund window
+        java.time.LocalDateTime escrowCutoff = java.time.LocalDateTime.now().minusDays(8);
+        
+        // 2. Fetch all pending ledger entries that have survived the escrow period
+        List<SellerLedger> pendingEntries = ledgerRepository.findEligibleForPayout(SellerLedger.SettlementStatus.PENDING, escrowCutoff);
         if (pendingEntries.isEmpty()) {
-            log.info("No PENDING ledger entries found for consolidation.");
+            log.info("No PENDING ledger entries found for consolidation that have passed the 8-day escrow period.");
             return;
         }
 
@@ -63,6 +66,7 @@ public class EndOfDaySettlementScheduler {
             ledgerRepository.saveAll(ledgers);
 
             SellerPayoutEvent payoutEvent = SellerPayoutEvent.builder()
+                    .eventId(UUID.randomUUID())
                     .settlementId(settlementId)
                     .sellerId(sellerId)
                     .netAmount(totalNet)
@@ -74,8 +78,15 @@ public class EndOfDaySettlementScheduler {
             log.info("Enqueuing payout event. Seller: {}, Settlement ID: {}, Amount: {}",
                     sellerId, settlementId, totalNet);
 
-            // Publish to RabbitMQ payout queue
-            rabbitTemplate.convertAndSend("seller-payout-exchange", "payout.routing.key", payoutEvent);
+            // Publish to RabbitMQ payout queue after commit
+            org.springframework.transaction.support.TransactionSynchronizationManager.registerSynchronization(
+                new org.springframework.transaction.support.TransactionSynchronization() {
+                    @Override
+                    public void afterCommit() {
+                        rabbitTemplate.convertAndSend("seller-payout-exchange", "payout.routing.key", payoutEvent);
+                    }
+                }
+            );
         }
     }
 

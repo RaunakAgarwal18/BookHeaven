@@ -1,6 +1,6 @@
 package com.bookheaven.book_service.component;
 
-import com.bookheaven.book_service.dto.event.BookRatingUpdateEvent;
+import com.bookheaven.common.dto.event.BookRatingUpdateEvent;
 import com.bookheaven.book_service.service.BookService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

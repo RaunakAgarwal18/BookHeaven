@@ -276,13 +276,12 @@ const CartPage = () => {
   const discountAmount = cart?.discountAmount || 0;
   const couponCode = cart?.couponCode;
 
-  const taxableAmount = Math.max(0, subtotal - discountAmount);
-  const taxAmount = taxableAmount * 0.18;
-  const shippingAmount = taxableAmount * 0.06;
-  const finalTotal = cart?.totalAmount || (taxableAmount + taxAmount + shippingAmount);
+  const taxAmount = cart?.taxAmount !== undefined ? cart.taxAmount : (subtotal * 0.18);
+  const shippingAmount = cart?.shippingAmount !== undefined ? cart.shippingAmount : (subtotal * 0.06);
+  const finalTotal = cart?.totalAmount !== undefined ? cart.totalAmount : (subtotal - discountAmount + taxAmount + shippingAmount);
 
   return (
-    <div className="container mt-8 mb-8">
+    <div style={{ width: '100%', maxWidth: '1500px', margin: '2rem auto', padding: '0 2rem 4rem 2rem' }}>
       <h1 className="mb-8" style={{ fontSize: '2.5rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '1rem' }}>Shopping Cart</h1>
 
       {items.length === 0 ? (
@@ -386,7 +385,7 @@ const CartPage = () => {
                       type="text"
                       placeholder="Promo Code"
                       value={couponInput}
-                      onChange={(e) => setCouponInput(e.target.value)}
+                      onChange={(e) => setCouponInput(e.target.value.toUpperCase())}
                       style={{ flex: 1, padding: '0.5rem', borderRadius: 'var(--radius)', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-color)', color: 'var(--text-color)' }}
                     />
                     <button

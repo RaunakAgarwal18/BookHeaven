@@ -1,6 +1,6 @@
 package com.bookheaven.payment_service.component;
 
-import com.bookheaven.payment_service.dto.event.OrderLedgerEvent;
+import com.bookheaven.common.dto.event.OrderLedgerEvent;
 import com.bookheaven.payment_service.entity.SellerLedger;
 import com.bookheaven.payment_service.repository.SellerLedgerRepository;
 import lombok.RequiredArgsConstructor;
@@ -20,24 +20,40 @@ public class LedgerQueueConsumer {
     @RabbitListener(queues = "seller-ledger-queue")
     @Transactional
     public void processLedgerEntry(OrderLedgerEvent event) {
-        log.info("Received OrderLedgerEvent for order: {}", event.getOrderId());
+        log.info("Received OrderLedgerEvent for order: {}, reversal: {}", event.getOrderId(), event.isReversal());
+
+        // REVERSAL: void existing PENDING entries — safe because 7-day cancel window < 14-day payout cycle
+        if (event.isReversal()) {
+            if (event.getOrderItemIds() != null && !event.getOrderItemIds().isEmpty()) {
+                // Partial cancellation — void only the specific items the seller cancelled
+                int voided = ledgerRepository.voidLedgerEntriesByOrderItemIds(event.getOrderItemIds());
+                log.info("Voided {} ledger entries for order item IDs: {}", voided, event.getOrderItemIds());
+            } else {
+                // Full cancellation (Admin or User) — void everything for this order
+                int voided = ledgerRepository.voidLedgerEntriesByOrderId(event.getOrderId());
+                log.info("Voided {} ledger entries for full cancellation of order: {}", voided, event.getOrderId());
+            }
+            return;
+        }
+
+        // CREDIT: normal confirmed order flow
         try {
             double remainingDiscount = event.getDiscountAmount() != null ? event.getDiscountAmount() : 0.0;
 
             for (OrderLedgerEvent.LedgerItemDto item : event.getItems()) {
                 double gross = item.getPrice() * item.getQuantity();
-                
+
                 // Allocate discount if this item belongs to the discountSellerId
                 double itemDiscount = 0.0;
-                if (event.getDiscountSellerId() != null 
-                    && event.getDiscountSellerId().equals(item.getSellerId()) 
-                    && remainingDiscount > 0) {
-                    
+                if (event.getDiscountSellerId() != null
+                        && event.getDiscountSellerId().equals(item.getSellerId())
+                        && remainingDiscount > 0) {
+
                     // Deduct from remaining discount pool (capped at item's gross)
                     itemDiscount = Math.min(gross, remainingDiscount);
                     remainingDiscount -= itemDiscount;
                 }
-                
+
                 double commission = gross * COMMISSION_RATE;
                 double net = gross - commission - itemDiscount;
 
@@ -55,9 +71,11 @@ public class LedgerQueueConsumer {
                         .build();
 
                 ledgerRepository.save(ledger);
-                log.info("Recorded ledger entry for seller: {}, item ID: {}, net: {}", 
+                log.info("Recorded ledger entry for seller: {}, item ID: {}, net: {}",
                         item.getSellerId(), item.getOrderItemId(), net);
             }
+        } catch (org.springframework.dao.DataIntegrityViolationException e) {
+            log.warn("Duplicate ledger entry detected for order: {}. Skipping.", event.getOrderId());
         } catch (Exception e) {
             log.error("Failed to process ledger entries for order: {}", event.getOrderId(), e);
             throw e; // trigger RabbitMQ retry mechanisms

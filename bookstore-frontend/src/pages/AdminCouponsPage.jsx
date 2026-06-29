@@ -359,7 +359,7 @@ const AdminCouponsPage = () => {
             <form onSubmit={handleCreateCoupon} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               <div>
                 <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-muted)' }}>Coupon Code</label>
-                <input required type="text" value={code} onChange={e => setCode(e.target.value)} placeholder="e.g., SUMMER50" style={{ width: '100%', padding: '0.75rem', borderRadius: 'var(--radius)', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-color)', color: 'var(--text-color)' }} />
+                <input required type="text" value={code} onChange={e => setCode(e.target.value.toUpperCase())} placeholder="e.g., SUMMER50" style={{ width: '100%', padding: '0.75rem', borderRadius: 'var(--radius)', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-color)', color: 'var(--text-color)' }} />
               </div>
               
               <div style={{ display: 'flex', gap: '1rem' }}>

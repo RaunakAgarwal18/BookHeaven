@@ -1,6 +1,6 @@
 package com.bookheaven.cart_service.client;
 
-import com.bookheaven.cart_service.dto.cartResponseDto.BookDto;
+import com.bookheaven.common.dto.response.BookDto;
 import java.util.List;
 
 public interface BookClient {

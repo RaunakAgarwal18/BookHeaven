@@ -1,6 +1,6 @@
 package com.bookheaven.email_service.exception;
 
-import com.bookheaven.email_service.dto.response.ErrorResponse;
+import com.bookheaven.common.dto.response.ErrorResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -13,7 +13,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(EmailSendingException.class)
     public ResponseEntity<ErrorResponse> handleEmailSendingException(EmailSendingException ex) {
-        ErrorResponse response = new ErrorResponse(LocalDateTime.now(), HttpStatus.INTERNAL_SERVER_ERROR.value(), "EMAIL_SENDING_FAILED", ex.getMessage());
+        ErrorResponse response = ErrorResponse.builder().timestamp(LocalDateTime.now()).status(HttpStatus.INTERNAL_SERVER_ERROR.value()).message(ex.getMessage()).build();
         return ResponseEntity
                 .status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(response);
@@ -22,15 +22,12 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleGenericException(Exception ex) {
         ErrorResponse response =
-                new ErrorResponse(
-                        LocalDateTime.now(),
-                        HttpStatus.INTERNAL_SERVER_ERROR.value(),
-                        "INTERNAL_SERVER_ERROR",
-                        "Something went wrong"
-                );
+                ErrorResponse.builder().timestamp(LocalDateTime.now()).status(HttpStatus.INTERNAL_SERVER_ERROR.value()).message("Something went wrong").build();
 
         return ResponseEntity
                 .status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(response);
     }
 }
+
+

@@ -1,7 +1,7 @@
 package com.bookheaven.user_service.util;
 
-import com.bookheaven.user_service.dto.responseDto.AddressDto;
-import com.bookheaven.user_service.dto.responseDto.UserResponse;
+import com.bookheaven.common.dto.response.AddressResponse;
+import com.bookheaven.common.dto.response.UserResponse;
 import com.bookheaven.user_service.entity.User;
 
 import java.util.stream.Collectors;
@@ -16,7 +16,7 @@ public class UserResponseBuilder {
                 .firstName(user.getFirstName())
                 .lastName(user.getLastName())
                 .addresses(user.getAddresses() != null ? user.getAddresses().stream()
-                        .map(a -> AddressDto.builder()
+                        .map(a -> AddressResponse.builder()
                                 .id(a.getId())
                                 .street(a.getStreet())
                                 .city(a.getCity())
@@ -32,3 +32,4 @@ public class UserResponseBuilder {
                 .build();
     }
 }
+

@@ -1,8 +1,8 @@
 package com.bookheaven.email_service.util;
 
-import com.bookheaven.email_service.dto.event.OrderDeliveredEvent;
-import com.bookheaven.email_service.dto.event.OrderShippedEvent;
-import com.bookheaven.email_service.dto.event.SellerOrderEvent;
+import com.bookheaven.common.dto.event.OrderDeliveredEvent;
+import com.bookheaven.common.dto.event.OrderShippedEvent;
+import com.bookheaven.common.dto.event.SellerOrderEvent;
 
 import java.util.List;
 

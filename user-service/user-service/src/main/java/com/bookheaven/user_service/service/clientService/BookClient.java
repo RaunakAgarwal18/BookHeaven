@@ -1,6 +1,6 @@
 package com.bookheaven.user_service.service.clientService;
 
-import com.bookheaven.user_service.dto.BookDto;
+import com.bookheaven.common.dto.response.BookPublicResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -33,7 +33,7 @@ public class BookClient {
     private String bulkBooksUrl;
 
     @CircuitBreaker(name = "bookService", fallbackMethod = "fallbackGetBulkBooks")
-    public List<BookDto> getBulkBooks(List<Long> bookIds) {
+    public List<BookPublicResponse> getBulkBooks(List<Long> bookIds) {
         if (bookIds == null || bookIds.isEmpty()) {
             return Collections.emptyList();
         }
@@ -46,11 +46,11 @@ public class BookClient {
             
             HttpEntity<List<Long>> request = new HttpEntity<>(bookIds, headers);
             
-            ResponseEntity<List<BookDto>> response = restTemplate.exchange(
+            ResponseEntity<List<BookPublicResponse>> response = restTemplate.exchange(
                     url,
                     HttpMethod.POST,
                     request,
-                    new ParameterizedTypeReference<List<BookDto>>() {}
+                    new ParameterizedTypeReference<List<BookPublicResponse>>() {}
             );
             
             return response.getBody();
@@ -60,7 +60,7 @@ public class BookClient {
         }
     }
 
-    public List<BookDto> fallbackGetBulkBooks(List<Long> bookIds, Throwable t) {
+    public List<BookPublicResponse> fallbackGetBulkBooks(List<Long> bookIds, Throwable t) {
         log.error("Circuit breaker tripped for getBulkBooks", t);
         throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "Book service is temporarily unavailable. Please try again later.", t);
     }

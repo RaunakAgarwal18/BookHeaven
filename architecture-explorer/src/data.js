@@ -116,7 +116,7 @@ export const SERVICES = [
     endpoints: [
       { method: 'GET', path: '/api/book', desc: 'Paginated book list', auth: 'None' },
       { method: 'GET', path: '/api/book/{bookId}', desc: 'Book detail + listings', auth: 'None' },
-      { method: 'GET', path: '/api/book/search', desc: 'Search by title/author/isbn/category', auth: 'None' },
+
       { method: 'POST', path: '/api/book', desc: 'Add listing (auto-create book by ISBN)', auth: 'JWT' },
       { method: 'PUT', path: '/api/book/listing/{listingId}', desc: 'Update listing', auth: 'JWT' },
       { method: 'DELETE', path: '/api/book/listing/{listingId}', desc: 'Delete listing', auth: 'JWT' },
@@ -237,6 +237,7 @@ export const SERVICES = [
       { method: 'PUT', path: '/api/order/admin/{orderId}/status', desc: 'Force update status (Admin)', auth: 'JWT' },
       { method: 'PUT', path: '/api/order/{orderId}/confirm', desc: 'Confirm order (from Payment)', auth: 'Internal' },
       { method: 'PUT', path: '/api/order/{orderId}/fail', desc: 'Fail order (from Payment)', auth: 'Internal' },
+      { method: 'PUT', path: '/api/order/{orderId}/refund-complete', desc: 'Complete refund (from Payment)', auth: 'Internal' },
     ],
     entities: [
       { name: 'Order', fields: [
@@ -279,10 +280,11 @@ export const SERVICES = [
       { name: 'OrderShippedEvent', direction: 'produces', exchange: 'email.exchange', key: 'email.order.shipped' },
       { name: 'OrderDeliveredEvent', direction: 'produces', exchange: 'email.exchange', key: 'email.order.delivered' },
       { name: 'OrderLedgerEvent', direction: 'produces', exchange: 'ledger.exchange', key: 'ledger.order.confirmed' },
+      { name: 'RefundEvent', direction: 'produces', exchange: 'refund.exchange', key: 'refund.delay.key' },
       { name: 'OrderTimeoutEvent', direction: 'consumes', exchange: 'order.timeout.exchange', key: 'order.timeout.processing' },
     ],
     redisKeys: [],
-    details: 'The Order Service is the orchestrator of the entire purchase lifecycle:\n\n• **Checkout** — Fetches cart, validates stock, fetches user addresses, creates PENDING order, publishes timeout event (60s), initiates payment.\n• **Timeout** — Uses RabbitMQ DLX pattern: order.timeout.queue (60s TTL) → dead letter → order.timeout.processing.queue → consumer checks if still PENDING → marks FAILED.\n• **Confirmation** — On payment.captured webhook: reduce stock, clear cart, increment coupon usage, send buyer + seller emails, publish ledger event.\n• **Cancellation** — Restores stock, initiates Razorpay refund if already CONFIRMED (→ REFUNDED), otherwise → CANCELLED.\n• **Seller View** — Filters order items to show only the seller\'s items with recalculated totals.\n• **Order Reference** — 6-character alphanumeric code, generated with SecureRandom, uniqueness guaranteed via DB check.',
+    details: 'The Order Service is the orchestrator of the entire purchase lifecycle:\n\n• **Checkout** — Fetches cart, validates stock, fetches user addresses, creates PENDING order, publishes timeout event (60s), initiates payment.\n• **Timeout** — Uses RabbitMQ DLX pattern: order.timeout.queue (60s TTL) → dead letter → order.timeout.processing.queue → consumer checks if still PENDING → marks FAILED.\n• **Confirmation** — On payment.captured webhook: reduce stock, clear cart, increment coupon usage, send buyer + seller emails, publish ledger event.\n• **Cancellation** — Restores stock, sets status to REFUND_IN_PROGRESS, and publishes a RefundEvent to a 1-week delay queue. Refund completes asynchronously.\n• **Seller View** — Filters order items to show only the seller\'s items with recalculated totals.\n• **Order Reference** — 6-character alphanumeric code, generated with SecureRandom, uniqueness guaranteed via DB check.',
   },
   {
     id: 'payment-service',
@@ -336,9 +338,10 @@ export const SERVICES = [
       { name: 'SellerPayoutEvent', direction: 'produces', exchange: 'seller-payout-exchange', key: 'payout.routing.key' },
       { name: 'SellerPayoutEvent', direction: 'consumes', exchange: 'seller-payout-exchange', key: 'payout.routing.key' },
       { name: 'MissingRazorpayIdEvent', direction: 'produces', exchange: 'email.exchange', key: 'email.missing.razorpay' },
+      { name: 'RefundEvent', direction: 'consumes', exchange: 'refund.exchange', key: 'refund.processing.key' },
     ],
     redisKeys: [],
-    details: 'The Payment Service handles all financial operations:\n\n• **Initiation** — Creates a Razorpay order (amount converted to paise), saves Payment entity with PENDING status.\n• **Webhook** — Listens for payment.captured and payment.failed events. Verifies HMAC-SHA256 signature. Has idempotency guard (skips if already SUCCESS).\n• **Refund** — Calls Razorpay refund API, updates status to REFUNDED.\n• **Seller Ledger** — LedgerQueueConsumer creates per-item ledger entries with 10% platform commission. Seller-specific coupon discounts are allocated to the matching seller.\n• **EOD Settlement** — Scheduled at 23:50 daily. Groups PENDING ledger entries by seller, sets status to PROCESSING, publishes SellerPayoutEvent.\n• **Settlement Retry** — Scheduled at 12:00 daily. Resets FAILED ledger entries back to PENDING for automatic retry.\n• **Payout Execution** — PayoutQueueConsumer calls Razorpay Transfers API to route funds to seller\'s linked account. If no razorpayAccountId, marks FAILED and sends email notification.',
+    details: 'The Payment Service handles all financial operations:\n\n• **Initiation** — Creates a Razorpay order (amount converted to paise), saves Payment entity with PENDING status.\n• **Webhook** — Listens for payment.captured and payment.failed events. Verifies HMAC-SHA256 signature. Has idempotency guard (skips if already SUCCESS).\n• **Refund** — Consumes RefundEvents from a delay queue (DLX). Calls Razorpay refund API, updates status to REFUNDED, and notifies Order Service via callback.\n• **Seller Ledger** — LedgerQueueConsumer creates per-item ledger entries with 10% platform commission. Seller-specific coupon discounts are allocated to the matching seller.\n• **EOD Settlement** — Scheduled at 23:50 daily. Groups PENDING ledger entries by seller, sets status to PROCESSING, publishes SellerPayoutEvent.\n• **Settlement Retry** — Scheduled at 12:00 daily. Resets FAILED ledger entries back to PENDING for automatic retry.\n• **Payout Execution** — PayoutQueueConsumer calls Razorpay Transfers API to route funds to seller\'s linked account. If no razorpayAccountId, marks FAILED and sends email notification.',
   },
   {
     id: 'email-service',
@@ -465,6 +468,7 @@ export const EVENTS = [
   { name: 'MissingRazorpayIdEvent', producer: 'Payment Service', consumer: 'Email Service', exchange: 'email.exchange', key: 'email.missing.razorpay', queue: 'email.missing.razorpay.queue' },
   { name: 'BookRatingUpdateEvent', producer: 'Review Service', consumer: 'Book Service', exchange: 'book.rating.update.exchange', key: 'book.rating.update.routing.key', queue: 'book.rating.update.queue' },
   { name: 'BookEvent', producer: 'Book Service', consumer: 'Search Service', exchange: 'book.event.exchange', key: 'book.*', queue: 'book.search.queue' },
+  { name: 'RefundEvent', producer: 'Order Service', consumer: 'Payment Service', exchange: 'refund.exchange', key: 'refund.delay.key → refund.processing.key', queue: 'refundDelayQueue (1-week TTL) → DLX → refundProcessingQueue' },
 ];
 
 export const EXCHANGES = [
@@ -475,6 +479,7 @@ export const EXCHANGES = [
   { name: 'seller-payout-exchange', type: 'Topic', declaredBy: 'Payment Service', queues: 1, purpose: 'Seller payout execution' },
   { name: 'book.rating.update.exchange', type: 'Direct', declaredBy: 'Review Service', queues: 1, purpose: 'Eventual consistency for book ratings' },
   { name: 'book.event.exchange', type: 'Topic', declaredBy: 'Book Service', queues: 1, purpose: 'Syncing catalog updates to Search Service' },
+  { name: 'refund.exchange', type: 'Topic', declaredBy: 'Payment Service', queues: 2, purpose: 'Delayed order refunds (DLX pattern)' },
 ];
 
 export const DESIGN_DECISIONS = [

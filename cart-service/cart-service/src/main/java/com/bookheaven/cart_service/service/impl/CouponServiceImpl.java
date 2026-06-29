@@ -39,8 +39,14 @@ public class CouponServiceImpl implements CouponService {
             boolean isSeller = authentication.getAuthorities().stream()
                     .map(GrantedAuthority::getAuthority)
                     .anyMatch(role -> role.equals("ROLE_SELLER"));
+            boolean isAdmin = authentication.getAuthorities().stream()
+                    .map(GrantedAuthority::getAuthority)
+                    .anyMatch(role -> role.equals("ROLE_ADMIN"));
+                    
             if (isSeller) {
                 sellerId = (UUID) authentication.getPrincipal();
+            } else if (!isAdmin) {
+                throw new InvalidCouponException("Only sellers or admins can create coupons");
             }
         }
 
@@ -76,10 +82,19 @@ public class CouponServiceImpl implements CouponService {
             boolean isSeller = authentication.getAuthorities().stream()
                     .map(GrantedAuthority::getAuthority)
                     .anyMatch(role -> role.equals("ROLE_SELLER"));
+            boolean isAdmin = authentication.getAuthorities().stream()
+                    .map(GrantedAuthority::getAuthority)
+                    .anyMatch(role -> role.equals("ROLE_ADMIN"));
+                    
             if (isSeller) {
                 UUID sellerId = (UUID) authentication.getPrincipal();
                 coupons = coupons.stream()
                         .filter(c -> sellerId.equals(c.getSellerId()))
+                        .collect(Collectors.toList());
+            } else if (!isAdmin) {
+                // Regular users should only see active, non-expired coupons
+                coupons = coupons.stream()
+                        .filter(c -> c.getIsActive() && java.time.LocalDateTime.now().isBefore(c.getExpiryDate()))
                         .collect(Collectors.toList());
             }
         }
@@ -99,11 +114,17 @@ public class CouponServiceImpl implements CouponService {
             boolean isSeller = authentication.getAuthorities().stream()
                     .map(GrantedAuthority::getAuthority)
                     .anyMatch(role -> role.equals("ROLE_SELLER"));
+            boolean isAdmin = authentication.getAuthorities().stream()
+                    .map(GrantedAuthority::getAuthority)
+                    .anyMatch(role -> role.equals("ROLE_ADMIN"));
+                    
             if (isSeller) {
                 UUID sellerId = (UUID) authentication.getPrincipal();
                 if (!sellerId.equals(coupon.getSellerId())) {
                     throw new InvalidCouponException("You are not authorized to toggle this coupon");
                 }
+            } else if (!isAdmin) {
+                throw new InvalidCouponException("You are not authorized to toggle this coupon");
             }
         }
                 
@@ -118,33 +139,40 @@ public class CouponServiceImpl implements CouponService {
     @Override
     public void validateCoupon(String code, Double subtotal) {
         Coupon coupon = couponRepository.findByCode(code.toUpperCase())
-                .orElseThrow(() -> new InvalidCouponException("Invalid coupon code"));
+                .orElseThrow(() -> new InvalidCouponException("Invalid coupon"));
 
         CouponStatus status = computeStatus(coupon);
         if (status == CouponStatus.EXPIRED) {
-            throw new InvalidCouponException("This coupon has expired or reached its usage limit");
+            throw new InvalidCouponException("Coupon Expired");
         }
         if (status == CouponStatus.INACTIVE) {
-            throw new InvalidCouponException("This coupon is no longer active");
+            throw new InvalidCouponException("Invalid coupon");
         }
 
         LocalDateTime now = LocalDateTime.now();
         if (now.isBefore(coupon.getStartDate())) {
-            throw new InvalidCouponException("This coupon is not yet valid");
+            throw new InvalidCouponException("Invalid coupon");
         }
 
         if (coupon.getMinOrderAmount() != null && subtotal < coupon.getMinOrderAmount()) {
-            throw new InvalidCouponException("Minimum order amount of " + coupon.getMinOrderAmount() + " is required to use this coupon");
+            double shortfall = coupon.getMinOrderAmount() - subtotal;
+            throw new InvalidCouponException(String.format("Add %.2f more to unlock coupon", shortfall));
         }
     }
 
     @Override
     @Transactional
     public void incrementUsage(String code) {
-        Coupon coupon = couponRepository.findByCode(code.toUpperCase())
-                .orElseThrow(() -> new InvalidCouponException("Coupon not found"));
-        coupon.setUsageCount(coupon.getUsageCount() + 1);
-        couponRepository.save(coupon);
+        int updatedRows = couponRepository.incrementUsageAtomic(code.toUpperCase());
+        if (updatedRows == 0) {
+            throw new InvalidCouponException("Coupon not found, inactive, or usage limit reached");
+        }
+    }
+
+    @Override
+    @Transactional
+    public void decrementUsage(String code) {
+        couponRepository.decrementUsageAtomic(code.toUpperCase());
     }
 
 
@@ -159,11 +187,17 @@ public class CouponServiceImpl implements CouponService {
             boolean isSeller = authentication.getAuthorities().stream()
                     .map(GrantedAuthority::getAuthority)
                     .anyMatch(role -> role.equals("ROLE_SELLER"));
+            boolean isAdmin = authentication.getAuthorities().stream()
+                    .map(GrantedAuthority::getAuthority)
+                    .anyMatch(role -> role.equals("ROLE_ADMIN"));
+                    
             if (isSeller) {
                 UUID sellerId = (UUID) authentication.getPrincipal();
                 if (!sellerId.equals(coupon.getSellerId())) {
                     throw new InvalidCouponException("You are not authorized to delete this coupon");
                 }
+            } else if (!isAdmin) {
+                throw new InvalidCouponException("You are not authorized to delete this coupon");
             }
         }
 

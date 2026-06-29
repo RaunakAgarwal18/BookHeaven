@@ -1,7 +1,7 @@
 package com.bookheaven.cart_service.util;
 
-import com.bookheaven.cart_service.dto.cartResponseDto.BookDto;
-import com.bookheaven.cart_service.dto.cartResponseDto.CartItemResponse;
+import com.bookheaven.common.dto.response.BookDto;
+import com.bookheaven.common.dto.response.CartItemResponse;
 import com.bookheaven.cart_service.entity.CartItem;
 import org.springframework.stereotype.Component;
 
@@ -36,6 +36,6 @@ public class CartDtoMapper {
                             .build();
                 })
                 .filter(Objects::nonNull)
-                .toList();
+                .collect(Collectors.toList());
     }
 }

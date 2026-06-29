@@ -1,6 +1,6 @@
 package com.bookheaven.cart_service.exception;
 
-import com.bookheaven.cart_service.dto.ErrorResponse;
+import com.bookheaven.common.dto.response.ErrorResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -52,3 +52,5 @@ public class GlobalExceptionHandler {
                         .build());
     }
 }
+
+

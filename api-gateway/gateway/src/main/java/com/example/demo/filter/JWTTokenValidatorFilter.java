@@ -18,15 +18,29 @@ import org.springframework.web.server.WebFilterChain;
 
 import reactor.core.publisher.Mono;
 
-import javax.crypto.SecretKey;
-import java.nio.charset.StandardCharsets;
+import java.security.KeyFactory;
+import java.security.PublicKey;
+import java.security.spec.X509EncodedKeySpec;
+import java.util.Base64;
 
 @Component
 @Slf4j
 public class JWTTokenValidatorFilter implements WebFilter {
 
-    @Value("${jwt.secret}")
-    private String secret;
+    @Value("${jwt.public.key}")
+    private String publicKeyPem;
+
+    // Helper to parse the Base64 string into a Java PublicKey object
+    private PublicKey getPublicKey() {
+        try {
+            byte[] encoded = Base64.getDecoder().decode(publicKeyPem);
+            KeyFactory keyFactory = KeyFactory.getInstance("RSA");
+            X509EncodedKeySpec keySpec = new X509EncodedKeySpec(encoded);
+            return keyFactory.generatePublic(keySpec);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to parse public key", e);
+        }
+    }
 
     @Value("${internal.service.secret}")
     private String internalServiceSecret;
@@ -78,12 +92,8 @@ public class JWTTokenValidatorFilter implements WebFilter {
 
         try {
 
-            SecretKey secretKey = Keys.hmacShaKeyFor(
-                    secret.getBytes(StandardCharsets.UTF_8)
-            );
-
             Claims claims = Jwts.parser()
-                    .verifyWith(secretKey)
+                    .verifyWith(getPublicKey())
                     .build()
                     .parseSignedClaims(jwt)
                     .getPayload();

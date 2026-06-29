@@ -1,6 +1,6 @@
 package com.bookheaven.cart_service.client;
 
-import com.bookheaven.cart_service.dto.cartResponseDto.BookDto;
+import com.bookheaven.common.dto.response.BookDto;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;

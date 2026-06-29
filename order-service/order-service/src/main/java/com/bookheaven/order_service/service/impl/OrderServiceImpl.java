@@ -1,16 +1,16 @@
 package com.bookheaven.order_service.service.impl;
 
-import com.bookheaven.order_service.dto.Event.*;
+import com.bookheaven.common.dto.event.*;
 import com.bookheaven.order_service.dto.OrderResponseDto.OrderResponse;
-import com.bookheaven.order_service.dto.bookRequestDto.BookDto;
-import com.bookheaven.order_service.dto.bookRequestDto.StockUpdateRequest;
-import com.bookheaven.order_service.dto.cartResponseDto.CartItemResponse;
-import com.bookheaven.order_service.dto.cartResponseDto.CartResponse;
+import com.bookheaven.common.dto.response.BookDto;
+import com.bookheaven.common.dto.request.StockUpdateRequest;
+import com.bookheaven.common.dto.response.CartItemResponse;
+import com.bookheaven.common.dto.response.CartResponse;
 import com.bookheaven.order_service.dto.checkoutRequestDto.CheckoutRequest;
 import com.bookheaven.order_service.dto.checkoutResponseDto.CheckoutResponse;
-import com.bookheaven.order_service.dto.paymentResponseDto.InitiatePaymentResponse;
-import com.bookheaven.order_service.dto.userResponseDto.AddressResponse;
-import com.bookheaven.order_service.dto.userResponseDto.UserResponse;
+import com.bookheaven.common.dto.response.InitiatePaymentResponse;
+import com.bookheaven.common.dto.response.AddressResponse;
+import com.bookheaven.common.dto.response.UserResponse;
 import com.bookheaven.order_service.entity.Order;
 import com.bookheaven.order_service.entity.OrderItem;
 import com.bookheaven.order_service.entity.ShippingAddress;
@@ -35,6 +35,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -176,8 +177,35 @@ public class OrderServiceImpl implements OrderService {
 
         orderItems.forEach(item -> item.setOrder(order));
         order.setItems(orderItems);
-        Order savedOrder = orderRepository.save(order);
+        Order savedOrder = orderRepository.saveAndFlush(order);
         orderEventProducer.publishOrderTimeoutEvent(new OrderTimeoutEvent(savedOrder.getId()));
+
+        // 6.5 Reserve stock immediately before payment!
+        List<StockUpdateRequest> stockUpdates = cart.getItems().stream()
+                .map(item -> new StockUpdateRequest(item.getListingId(), item.getQuantity()))
+                .toList();
+        try {
+            bookClient.reduceStock(stockUpdates);
+        } catch (Exception e) {
+            savedOrder.setStatus(Order.OrderStatus.FAILED);
+            orderRepository.save(savedOrder);
+            throw new InsufficientStockException("One or more books are out of stock. Please try again later.");
+        }
+
+        // Reserve Coupon Usage
+        if (order.getCouponCode() != null) {
+            try {
+                cartClient.incrementCouponUsage(order.getCouponCode());
+            } catch (Exception e) {
+                // Rollback stock!
+                try {
+                    bookClient.restoreStock(stockUpdates);
+                } catch(Exception ex) {}
+                savedOrder.setStatus(Order.OrderStatus.FAILED);
+                orderRepository.save(savedOrder);
+                throw new InvalidCouponException("Failed to apply coupon. Usage limit reached.");
+            }
+        }
 
         // 7. Initiate payment
         InitiatePaymentResponse paymentResponse;
@@ -191,6 +219,14 @@ public class OrderServiceImpl implements OrderService {
                     token
             );
         } catch (Exception e) {
+            try {
+                bookClient.restoreStock(stockUpdates);
+            } catch (Exception ex) {
+                log.error("Failed to restore stock after payment initiation failure for order: {}", savedOrder.getId());
+            }
+            if (savedOrder.getCouponCode() != null) {
+                cartClient.decrementCouponUsage(savedOrder.getCouponCode());
+            }
             savedOrder.setStatus(Order.OrderStatus.FAILED);
             orderRepository.save(savedOrder);
             throw new PaymentServiceException("Failed to initiate payment, please try again");
@@ -221,26 +257,31 @@ public class OrderServiceImpl implements OrderService {
             return;
         }
 
+        // State-Machine guard (The Late Payment Fix)
+        if (order.getStatus() != Order.OrderStatus.PENDING) {
+            log.error("Late payment received for order {} which is in status {}. Auto-refunding.", orderId, order.getStatus());
+            
+            order.setStatus(Order.OrderStatus.REFUND_IN_PROGRESS);
+            order.getItems().forEach(item -> item.setStatus(Order.OrderStatus.REFUND_IN_PROGRESS));
+            orderRepository.save(order);
+            
+            RefundEvent refundEvent = RefundEvent.builder()
+                    .eventId(UUID.randomUUID())
+                    .orderId(orderId)
+                    .amount(order.getTotalAmount())
+                    .reason("Late payment: Order expired.")
+                    .build();
+            orderEventProducer.publishRefundEvent(refundEvent);
+            return;
+        }
+
         order.setStatus(Order.OrderStatus.CONFIRMED);
         order.getItems().forEach(item -> item.setStatus(Order.OrderStatus.CONFIRMED));
         order.setPaymentId(gatewayPaymentId);
         orderRepository.save(order);
 
-        // Reduce stock
-        List<StockUpdateRequest> stockUpdates = order.getItems().stream()
-                .map(item -> new StockUpdateRequest(item.getListingId(), item.getQuantity()))
-                .toList();
-        try {
-            bookClient.reduceStock(stockUpdates);
-        } catch (Exception e) {
-            throw new BookServiceException("Failed to reduce stock");
-        }
-
         try {
             cartClient.clearCart(order.getUserId());
-            if (order.getCouponCode() != null) {
-                cartClient.incrementCouponUsage(order.getCouponCode());
-            }
         } catch (Exception e) {
             // don't fail order if cart clear fails
         }
@@ -268,9 +309,61 @@ public class OrderServiceImpl implements OrderService {
     @Transactional
     public void failOrder(UUID orderId, String reason) {
         Order order = getOrderById(orderId);
+        
+        // State-Machine guard (The Late Decline Fix)
+        if (order.getStatus() != Order.OrderStatus.PENDING) {
+            log.warn("Cannot fail order {} because it is already in status {}", orderId, order.getStatus());
+            return;
+        }
+        
+        if (order.getStatus() == Order.OrderStatus.FAILED) {
+            return;
+        }
+        
         order.setStatus(Order.OrderStatus.FAILED);
         order.getItems().forEach(item -> item.setStatus(Order.OrderStatus.FAILED));
         orderRepository.save(order);
+        
+        List<StockUpdateRequest> stockUpdates = order.getItems().stream()
+                .map(item -> new StockUpdateRequest(item.getListingId(), item.getQuantity()))
+                .toList();
+        try {
+            bookClient.restoreStock(stockUpdates);
+        } catch (Exception e) {
+            log.error("Failed to restore stock for failed order: {}", orderId, e);
+        }
+        
+        if (order.getCouponCode() != null) {
+            cartClient.decrementCouponUsage(order.getCouponCode());
+        }
+    }
+
+    @Override
+    @Transactional
+    public void completeRefund(UUID orderId) {
+        log.info("Completing refund for order: {}", orderId);
+        Order order = getOrderById(orderId);
+        
+        boolean hasItemsRefunding = false;
+        
+        for (OrderItem item : order.getItems()) {
+            if (item.getStatus() == Order.OrderStatus.REFUND_IN_PROGRESS) {
+                item.setStatus(Order.OrderStatus.REFUNDED);
+                hasItemsRefunding = true;
+            }
+        }
+        
+        if (hasItemsRefunding) {
+            boolean allRefunded = order.getItems().stream()
+                    .allMatch(i -> i.getStatus() == Order.OrderStatus.REFUNDED || i.getStatus() == Order.OrderStatus.CANCELLED);
+            if (allRefunded) {
+                order.setStatus(Order.OrderStatus.REFUNDED);
+            } else {
+                order.setStatus(Order.OrderStatus.PARTIALLY_REFUNDED);
+            }
+            orderRepository.save(order);
+            log.info("Order {} refund complete. New status: {}", orderId, order.getStatus());
+        }
     }
 
     // ===================== GET ORDER =====================
@@ -314,51 +407,255 @@ public class OrderServiceImpl implements OrderService {
 
     // ===================== CANCEL ORDER =====================
 
+    private static final int CANCELLATION_WINDOW_DAYS = 7;
+
+    /**
+     * Enforces the 1-week cancellation window. Admins intentionally bypass this.
+     */
+    private void assertCancellationWindowOpen(Order order) {
+        if (order.getCreatedAt().isBefore(LocalDateTime.now().minusDays(CANCELLATION_WINDOW_DAYS))) {
+            throw new OrderCancellationWindowException(
+                    "Cancellation window has closed. Orders can only be cancelled within "
+                    + CANCELLATION_WINDOW_DAYS + " days of placement.");
+        }
+    }
+
+    /**
+     * Full-order cancellation — used by User cancelOrder() and Admin updateOrderStatus().
+     * Admins bypass the cancellation window but go through all the same financial cleanup.
+     */
+    private OrderResponse processFullOrderCancellation(Order order, Order.OrderStatus newStatus) {
+        Order.OrderStatus oldOrderStatus = order.getStatus();
+        
+        // Capture items that are still active (not already cancelled/refunded by a seller)
+        List<OrderItem> activeItems = order.getItems().stream()
+                .filter(item -> item.getStatus() != Order.OrderStatus.CANCELLED
+                             && item.getStatus() != Order.OrderStatus.REFUNDED
+                             && item.getStatus() != Order.OrderStatus.REFUND_IN_PROGRESS)
+                .toList();
+
+        // Capture stock updates before items are mutated in step 2
+        List<StockUpdateRequest> stockUpdates = activeItems.stream()
+                .filter(item -> item.getStatus() == Order.OrderStatus.PENDING 
+                             || item.getStatus() == Order.OrderStatus.CONFIRMED)
+                .map(item -> new StockUpdateRequest(item.getListingId(), item.getQuantity()))
+                .toList();
+
+        // 1. REFUND FIRST (Event dispatch)
+        if (oldOrderStatus == Order.OrderStatus.CONFIRMED
+                || oldOrderStatus == Order.OrderStatus.SHIPPED
+                || oldOrderStatus == Order.OrderStatus.DELIVERED
+                || oldOrderStatus == Order.OrderStatus.PARTIALLY_REFUND_IN_PROGRESS
+                || oldOrderStatus == Order.OrderStatus.PARTIALLY_REFUNDED) {
+            newStatus = Order.OrderStatus.REFUND_IN_PROGRESS;
+            
+            double itemSubtotal = activeItems.stream()
+                    .mapToDouble(i -> i.getPrice() * i.getQuantity()).sum();
+            double proportion   = itemSubtotal / order.getSubtotal();
+            
+            double discount = 0.0;
+            if (order.getCouponCode() != null && order.getDiscountAmount() != null && order.getDiscountAmount() > 0) {
+                if (order.getDiscountSellerId() != null) {
+                    double sellerSubtotalForDiscountedItems = order.getItems().stream()
+                            .filter(i -> i.getSellerId() != null && i.getSellerId().equals(order.getDiscountSellerId()))
+                            .mapToDouble(i -> i.getPrice() * i.getQuantity())
+                            .sum();
+                            
+                    double activeDiscountedItemsSubtotal = activeItems.stream()
+                            .filter(i -> i.getSellerId() != null && i.getSellerId().equals(order.getDiscountSellerId()))
+                            .mapToDouble(i -> i.getPrice() * i.getQuantity())
+                            .sum();
+                            
+                    if (sellerSubtotalForDiscountedItems > 0) {
+                        double discountedProportion = activeDiscountedItemsSubtotal / sellerSubtotalForDiscountedItems;
+                        discount = order.getDiscountAmount() * discountedProportion;
+                    }
+                } else {
+                    discount = order.getDiscountAmount() * proportion;
+                }
+            }
+            
+            double tax          = (order.getTaxAmount() != null ? order.getTaxAmount() : 0.0) * proportion;
+            double shipping     = 0.0;
+            if (oldOrderStatus != Order.OrderStatus.SHIPPED && oldOrderStatus != Order.OrderStatus.DELIVERED) {
+                shipping = (order.getShippingAmount() != null ? order.getShippingAmount() : 0.0) * proportion;
+            }
+            double refundAmount = Math.round((itemSubtotal - discount + tax + shipping) * 100.0) / 100.0;
+            
+            RefundEvent refundEvent = RefundEvent.builder()
+                    .eventId(UUID.randomUUID())
+                    .orderId(order.getId())
+                    .amount(refundAmount)
+                    .reason("Order cancelled")
+                    .build();
+            orderEventProducer.publishRefundEvent(refundEvent);
+        }
+
+        // 2. UPDATE DATABASE
+        order.setStatus(newStatus);
+        Order.OrderStatus finalNewStatus = newStatus;
+        order.getItems().forEach(item -> item.setStatus(finalNewStatus));
+        orderRepository.save(order);
+
+        // 3. RESTORE STOCK (only if the books never physically left the warehouse)
+        if (!stockUpdates.isEmpty()) {
+            try {
+                bookClient.restoreStock(stockUpdates);
+            } catch (Exception e) {
+                log.error("CRITICAL: Stock restore failed for cancelled order {}", order.getId(), e);
+            }
+        }
+
+        // 4. RESTORE COUPON (best effort)
+        if (order.getCouponCode() != null) {
+            cartClient.decrementCouponUsage(order.getCouponCode());
+        }
+
+        // 5. VOID LEDGER ENTRIES (safe — 7-day window < 14-day payout cycle guarantees entries are still PENDING)
+        try {
+            OrderLedgerEvent voidEvent = OrderLedgerEvent.builder()
+                    .orderId(order.getId())
+                    .reversal(true)
+                    .build();
+            orderEventProducer.publishOrderLedgerEvent(voidEvent);
+        } catch (Exception e) {
+            log.error("CRITICAL: Failed to publish ledger void for order {}", order.getId(), e);
+        }
+
+        return AppUtil.toOrderResponse(order);
+    }
+
+    /**
+     * Partial-order cancellation — used by Seller updateSellerOrderStatus().
+     * Issues a proportionally apportioned partial refund and voids only those ledger items.
+     */
+    private Order.OrderStatus processPartialOrderCancellation(Order order, List<OrderItem> sellerItems, Order.OrderStatus requestedStatus) {
+        Order.OrderStatus itemNewStatus = requestedStatus;
+        
+        // Capture stock updates before items are mutated
+        List<StockUpdateRequest> stockUpdates = sellerItems.stream()
+                .filter(item -> item.getStatus() == Order.OrderStatus.PENDING 
+                             || item.getStatus() == Order.OrderStatus.CONFIRMED)
+                .map(i -> new StockUpdateRequest(i.getListingId(), i.getQuantity()))
+                .toList();
+
+        // 1. PARTIAL REFUND (proportional to seller's share of the subtotal)
+        if (order.getStatus() == Order.OrderStatus.CONFIRMED
+                || order.getStatus() == Order.OrderStatus.SHIPPED
+                || order.getStatus() == Order.OrderStatus.DELIVERED
+                || order.getStatus() == Order.OrderStatus.PARTIALLY_REFUND_IN_PROGRESS
+                || order.getStatus() == Order.OrderStatus.PARTIALLY_REFUNDED) {
+            double itemSubtotal = sellerItems.stream()
+                    .mapToDouble(i -> i.getPrice() * i.getQuantity()).sum();
+            double proportion   = itemSubtotal / order.getSubtotal();
+            
+            double discount = 0.0;
+            if (order.getCouponCode() != null && order.getDiscountAmount() != null && order.getDiscountAmount() > 0) {
+                if (order.getDiscountSellerId() != null) {
+                    double sellerSubtotalForDiscountedItems = order.getItems().stream()
+                            .filter(i -> i.getSellerId() != null && i.getSellerId().equals(order.getDiscountSellerId()))
+                            .mapToDouble(i -> i.getPrice() * i.getQuantity())
+                            .sum();
+                            
+                    double activeDiscountedItemsSubtotal = sellerItems.stream()
+                            .filter(i -> i.getSellerId() != null && i.getSellerId().equals(order.getDiscountSellerId()))
+                            .mapToDouble(i -> i.getPrice() * i.getQuantity())
+                            .sum();
+                            
+                    if (sellerSubtotalForDiscountedItems > 0) {
+                        double discountedProportion = activeDiscountedItemsSubtotal / sellerSubtotalForDiscountedItems;
+                        discount = order.getDiscountAmount() * discountedProportion;
+                    }
+                } else {
+                    discount = order.getDiscountAmount() * proportion;
+                }
+            }
+            
+            double tax          = (order.getTaxAmount() != null ? order.getTaxAmount() : 0.0) * proportion;
+            double shipping     = 0.0;
+            if (order.getStatus() != Order.OrderStatus.SHIPPED && order.getStatus() != Order.OrderStatus.DELIVERED) {
+                shipping = (order.getShippingAmount() != null ? order.getShippingAmount() : 0.0) * proportion;
+            }
+            double refundAmount = Math.round((itemSubtotal - discount + tax + shipping) * 100.0) / 100.0;
+
+            itemNewStatus = Order.OrderStatus.REFUND_IN_PROGRESS;
+            sellerItems.forEach(item -> item.setStatus(Order.OrderStatus.REFUND_IN_PROGRESS));
+            
+            boolean allItemsRefundInProgress = order.getItems().stream()
+                    .allMatch(item -> item.getStatus() == Order.OrderStatus.REFUND_IN_PROGRESS);
+                    
+            if (allItemsRefundInProgress) {
+                order.setStatus(Order.OrderStatus.REFUND_IN_PROGRESS);
+            } else {
+                order.setStatus(Order.OrderStatus.PARTIALLY_REFUND_IN_PROGRESS);
+            }
+            orderRepository.save(order);
+
+            RefundEvent refundEvent = RefundEvent.builder()
+                    .eventId(UUID.randomUUID())
+                    .orderId(order.getId())
+                    .amount(refundAmount)
+                    .reason("Partial cancellation by seller")
+                    .build();
+            orderEventProducer.publishRefundEvent(refundEvent);
+        } else {
+            sellerItems.forEach(item -> item.setStatus(requestedStatus));
+        }
+
+        // 2. RESTORE STOCK (only if items never shipped)
+        if (!stockUpdates.isEmpty()) {
+            try {
+                bookClient.restoreStock(stockUpdates);
+            } catch (Exception e) {
+                log.error("CRITICAL: Partial stock restore failed for order {}", order.getId(), e);
+            }
+        }
+
+        // 3. PARTIAL LEDGER VOID (target only this seller's items)
+        List<Long> cancelledItemIds = sellerItems.stream().map(OrderItem::getId).toList();
+        try {
+            OrderLedgerEvent voidEvent = OrderLedgerEvent.builder()
+                    .orderId(order.getId())
+                    .reversal(true)
+                    .orderItemIds(cancelledItemIds)
+                    .build();
+            orderEventProducer.publishOrderLedgerEvent(voidEvent);
+        } catch (Exception e) {
+            log.error("CRITICAL: Partial ledger void failed for order {}", order.getId(), e);
+        }
+        // NOTE: Coupon intentionally NOT restored — user still benefits on remaining items
+        return itemNewStatus;
+    }
+
     @Override
     @Transactional
     public OrderResponse cancelOrder(Authentication authentication, UUID orderId) {
         UUID userId = (UUID) authentication.getPrincipal();
-
         Order order = getOrderById(orderId);
 
         if (!order.getUserId().equals(userId)) {
             throw new UnauthorizedOrderAccessException("You are not allowed to cancel this order");
         }
 
-        if (order.getStatus() == Order.OrderStatus.SHIPPED || order.getStatus() == Order.OrderStatus.DELIVERED) {
-            throw new OrderCancellationException("Cannot cancel order that is already " + order.getStatus());
-        }
-
-        if (order.getStatus() == Order.OrderStatus.CANCELLED) {
+        if (order.getStatus() == Order.OrderStatus.CANCELLED
+                || order.getStatus() == Order.OrderStatus.FAILED
+                || order.getStatus() == Order.OrderStatus.REFUNDED) {
             return AppUtil.toOrderResponse(order);
         }
 
-        // Restore stock
-        List<StockUpdateRequest> stockUpdates = order.getItems().stream()
-                .map(item -> new StockUpdateRequest(item.getListingId(), item.getQuantity()))
-                .toList();
-        try {
-            bookClient.restoreStock(stockUpdates);
-        } catch (Exception e) {
-            throw new BookServiceException("Failed to restore stock");
+        if (order.getStatus() == Order.OrderStatus.SHIPPED
+                || order.getStatus() == Order.OrderStatus.DELIVERED) {
+            throw new OrderCancellationException("Cannot cancel an order that is already " + order.getStatus());
         }
 
-        // Initiate refund if payment was made
-        if (order.getStatus() == Order.OrderStatus.CONFIRMED) {
-            try {
-                paymentClient.refund(order.getId(), order.getTotalAmount(), "Order cancelled by user");
-            } catch (Exception e) {
-                throw new PaymentServiceException("Failed to initiate refund");
-            }
-            order.setStatus(Order.OrderStatus.REFUNDED);
-            order.getItems().forEach(item -> item.setStatus(Order.OrderStatus.REFUNDED));
-        } else {
-            order.setStatus(Order.OrderStatus.CANCELLED);
-            order.getItems().forEach(item -> item.setStatus(Order.OrderStatus.CANCELLED));
-        }
+        // Enforce 1-week cancellation window for users
+        assertCancellationWindowOpen(order);
 
-        orderRepository.save(order);
-        return AppUtil.toOrderResponse(order);
+        Order.OrderStatus newStatus = (order.getStatus() == Order.OrderStatus.CONFIRMED)
+                ? Order.OrderStatus.REFUNDED
+                : Order.OrderStatus.CANCELLED;
+
+        return processFullOrderCancellation(order, newStatus);
     }
 
     // ===================== ADMIN - GET ALL ORDERS =====================
@@ -392,8 +689,15 @@ public class OrderServiceImpl implements OrderService {
     public OrderResponse updateOrderStatus(UUID orderId, String status) {
         Order order = getOrderById(orderId);
         Order.OrderStatus newStatus = orderStatusMachine.parseStatus(status);
-        orderStatusMachine.validateTransition(order.getStatus(), newStatus);
 
+        // ADMIN OVERRIDE: Process full cancellation before the state machine blocks it.
+        // Admins intentionally bypass the 7-day window to handle fraud/disputes on older orders.
+        if (newStatus == Order.OrderStatus.CANCELLED || newStatus == Order.OrderStatus.REFUNDED) {
+            return processFullOrderCancellation(order, newStatus);
+        }
+
+        // Normal status transitions (SHIPPED, DELIVERED, etc.) go through state machine
+        orderStatusMachine.validateTransition(order.getStatus(), newStatus);
         order.setStatus(newStatus);
         order.getItems().forEach(item -> item.setStatus(newStatus));
         orderRepository.save(order);
@@ -441,17 +745,58 @@ public class OrderServiceImpl implements OrderService {
         }
 
         Order.OrderStatus newStatus = orderStatusMachine.parseStatus(status);
-        
+
         boolean alreadyUpdated = sellerItems.stream().allMatch(item -> item.getStatus() == newStatus);
         if (alreadyUpdated) {
             return applySellerView(AppUtil.toOrderResponse(order), sellerId);
         }
 
-        orderStatusMachine.validateTransition(sellerItems.get(0).getStatus(), newStatus);
+        // SELLER CANCELLATION OVERRIDE
+        if (newStatus == Order.OrderStatus.CANCELLED || newStatus == Order.OrderStatus.REFUNDED) {
+            // Enforce 1-week window for sellers too
+            assertCancellationWindowOpen(order);
+
+            Order.OrderStatus finalItemStatus = processPartialOrderCancellation(order, sellerItems, newStatus);
+
+            // Escalate parent order status only if ALL OTHER sellers' items are also cancelled/refunded
+            // We check non-sellerItem IDs to avoid reading our own just-updated items
+            List<Long> sellerItemIds = sellerItems.stream().map(OrderItem::getId).toList();
+            boolean allOthersCancelled = order.getItems().stream()
+                    .filter(i -> !sellerItemIds.contains(i.getId())) // only OTHER sellers' items
+                    .allMatch(i -> i.getStatus() == Order.OrderStatus.CANCELLED
+                                || i.getStatus() == Order.OrderStatus.REFUNDED
+                                || i.getStatus() == Order.OrderStatus.REFUND_IN_PROGRESS);
+            // Also count if there are no other items at all (single-seller order)
+            boolean noOtherItems = order.getItems().stream().noneMatch(i -> !sellerItemIds.contains(i.getId()));
+
+            if (noOtherItems || allOthersCancelled) {
+                boolean allRefunding = order.getItems().stream().allMatch(i -> i.getStatus() == Order.OrderStatus.REFUND_IN_PROGRESS);
+                if (allRefunding) {
+                    order.setStatus(Order.OrderStatus.REFUND_IN_PROGRESS);
+                } else if (order.getItems().stream().allMatch(i -> i.getStatus() == Order.OrderStatus.CANCELLED)) {
+                    order.setStatus(Order.OrderStatus.CANCELLED);
+                } else {
+                    order.setStatus(Order.OrderStatus.PARTIALLY_CANCELLED);
+                }
+            }
+            orderRepository.save(order);
+            return applySellerView(AppUtil.toOrderResponse(order), sellerId);
+        }
+
+        // Normal fulfillment: SHIP or DELIVER
+        orderStatusMachine.validateTransition(sellerItems.getFirst().getStatus(), newStatus);
         sellerItems.forEach(item -> item.setStatus(newStatus));
 
-        boolean allItemsShipped = order.getItems().stream().allMatch(item -> item.getStatus() == Order.OrderStatus.SHIPPED || item.getStatus() == Order.OrderStatus.DELIVERED);
-        boolean allItemsDelivered = order.getItems().stream().allMatch(item -> item.getStatus() == Order.OrderStatus.DELIVERED);
+        // Only consider ACTIVE items (ignore items that were partially cancelled by this or another seller)
+        List<OrderItem> activeItems = order.getItems().stream()
+                .filter(item -> item.getStatus() != Order.OrderStatus.CANCELLED
+                             && item.getStatus() != Order.OrderStatus.REFUNDED
+                             && item.getStatus() != Order.OrderStatus.REFUND_IN_PROGRESS
+                             && item.getStatus() != Order.OrderStatus.PARTIALLY_REFUND_IN_PROGRESS)
+                .toList();
+
+        boolean allItemsShipped   = !activeItems.isEmpty() && activeItems.stream().allMatch(item -> item.getStatus() == Order.OrderStatus.SHIPPED || item.getStatus() == Order.OrderStatus.DELIVERED);
+        boolean allItemsDelivered = !activeItems.isEmpty() && activeItems.stream().allMatch(item -> item.getStatus() == Order.OrderStatus.DELIVERED);
 
         boolean isFinalShipment = false;
         boolean isFinalDelivery = false;

@@ -1,7 +1,7 @@
 package com.bookheaven.order_service.service.clientService;
 
-import com.bookheaven.order_service.dto.bookRequestDto.BookDto;
-import com.bookheaven.order_service.dto.bookRequestDto.StockUpdateRequest;
+import com.bookheaven.common.dto.response.BookDto;
+import com.bookheaven.common.dto.request.StockUpdateRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;

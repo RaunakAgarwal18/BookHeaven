@@ -13,6 +13,7 @@ public interface OrderService {
     public CheckoutResponse checkout(Authentication authentication, CheckoutRequest checkoutRequest);
     public void confirmOrder(UUID orderId, String gatewayPaymentId);
     public void failOrder(UUID orderId, String reason);
+    public void completeRefund(UUID orderId);
     public OrderResponse getOrder(Authentication authentication, UUID orderId);
     public Page<OrderResponse> getMyOrders(Authentication authentication, int pageNumber, int pageSize, String status);
     public OrderResponse cancelOrder(Authentication authentication, UUID orderId);

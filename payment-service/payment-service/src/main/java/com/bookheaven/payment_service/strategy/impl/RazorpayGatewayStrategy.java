@@ -1,6 +1,6 @@
 package com.bookheaven.payment_service.strategy.impl;
 
-import com.bookheaven.payment_service.dto.requestDto.InitiatePaymentRequest;
+import com.bookheaven.common.dto.request.InitiatePaymentRequest;
 import com.bookheaven.payment_service.dto.requestDto.RefundRequest;
 import com.bookheaven.payment_service.dto.strategy.GatewayOrderResponse;
 import com.bookheaven.payment_service.dto.strategy.WebhookPayload;
@@ -28,6 +28,9 @@ public class RazorpayGatewayStrategy implements PaymentGatewayStrategy {
 
     @Value("${razorpay.key.id}")
     private String keyId;
+
+    @Value("${razorpay.key.secret}")
+    private String keySecret;
 
     @Override
     public GatewayOrderResponse createOrder(InitiatePaymentRequest request) {
@@ -80,13 +83,18 @@ public class RazorpayGatewayStrategy implements PaymentGatewayStrategy {
     }
 
     @Override
-    public String refund(Payment payment, RefundRequest request) {
+    public String refund(Payment payment, RefundRequest request, String idempotencyKey) {
         try {
             JSONObject refundRequest = new JSONObject();
             refundRequest.put("amount", (int)(request.getAmount() * 100)); // paise
             refundRequest.put("notes", new JSONObject().put("reason", request.getReason()));
 
-            com.razorpay.Refund razorpayPayment = razorpayClient.payments
+            RazorpayClient scopedClient = new RazorpayClient(keyId, keySecret);
+            java.util.Map<String, String> headers = new java.util.HashMap<>();
+            headers.put("X-Refund-Idempotency", idempotencyKey);
+            scopedClient.addHeaders(headers);
+
+            com.razorpay.Refund razorpayPayment = scopedClient.payments
                     .refund(payment.getGatewayPaymentId(), refundRequest);
 
             return razorpayPayment.get("id");

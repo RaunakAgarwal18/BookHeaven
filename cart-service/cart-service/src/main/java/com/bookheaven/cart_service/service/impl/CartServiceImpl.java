@@ -1,8 +1,8 @@
 package com.bookheaven.cart_service.service.impl;
 
-import com.bookheaven.cart_service.dto.cartResponseDto.BookDto;
-import com.bookheaven.cart_service.dto.cartResponseDto.CartItemResponse;
-import com.bookheaven.cart_service.dto.cartResponseDto.CartResponse;
+import com.bookheaven.common.dto.response.BookDto;
+import com.bookheaven.common.dto.response.CartItemResponse;
+import com.bookheaven.common.dto.response.CartResponse;
 import com.bookheaven.cart_service.entity.Cart;
 import com.bookheaven.cart_service.entity.CartItem;
 import com.bookheaven.cart_service.exception.BookServiceException;
@@ -38,6 +38,11 @@ public class CartServiceImpl implements CartService {
         return buildCartResponse(cart);
     }
 
+    @org.springframework.retry.annotation.Retryable(
+            retryFor = org.springframework.orm.ObjectOptimisticLockingFailureException.class,
+            maxAttempts = 3,
+            backoff = @org.springframework.retry.annotation.Backoff(delay = 100)
+    )
     public CartResponse addToCart(UUID userId, Long listingId, int quantity) {
         Cart cart = cartRepository.findByUserId(userId).orElseGet(() -> createCart(userId));
         Optional<CartItem> existingItem = cart.getItems()
@@ -57,6 +62,11 @@ public class CartServiceImpl implements CartService {
         return buildCartResponse(cart);
     }
 
+    @org.springframework.retry.annotation.Retryable(
+            retryFor = org.springframework.orm.ObjectOptimisticLockingFailureException.class,
+            maxAttempts = 3,
+            backoff = @org.springframework.retry.annotation.Backoff(delay = 100)
+    )
     public CartResponse updateQuantity(UUID userId, Long listingId, int quantity) {
         Cart cart = getExistingCart(userId);
         CartItem item = cart.getItems()
@@ -73,6 +83,11 @@ public class CartServiceImpl implements CartService {
         return buildCartResponse(cart);
     }
 
+    @org.springframework.retry.annotation.Retryable(
+            retryFor = org.springframework.orm.ObjectOptimisticLockingFailureException.class,
+            maxAttempts = 3,
+            backoff = @org.springframework.retry.annotation.Backoff(delay = 100)
+    )
     public CartResponse removeFromCart(UUID userId, Long listingId) {
         Cart cart = getExistingCart(userId);
         CartItem item = cart.getItems()
@@ -85,6 +100,11 @@ public class CartServiceImpl implements CartService {
         return buildCartResponse(cart);
     }
 
+    @org.springframework.retry.annotation.Retryable(
+            retryFor = org.springframework.orm.ObjectOptimisticLockingFailureException.class,
+            maxAttempts = 3,
+            backoff = @org.springframework.retry.annotation.Backoff(delay = 100)
+    )
     public void clearCart(UUID userId) {
         Cart cart = getExistingCart(userId);
         cart.getItems().clear(); // orphanRemoval → DB delete
@@ -92,18 +112,42 @@ public class CartServiceImpl implements CartService {
         cartRepository.save(cart);
     }
 
+    @org.springframework.retry.annotation.Retryable(
+            retryFor = org.springframework.orm.ObjectOptimisticLockingFailureException.class,
+            maxAttempts = 3,
+            backoff = @org.springframework.retry.annotation.Backoff(delay = 100)
+    )
     public CartResponse applyCoupon(UUID userId, String couponCode) {
         Cart cart = getExistingCart(userId);
         CartResponse currentCart = buildCartResponse(cart);
         
-        // Validate coupon with current subtotal
-        couponService.validateCoupon(couponCode, currentCart.getTotalAmount());
+        com.bookheaven.cart_service.dto.cartResponseDto.CouponResponse coupon = couponService.getCouponByCode(couponCode);
+        
+        double eligibleSubtotal = currentCart.getSubtotal();
+        if (coupon.getSellerId() != null) {
+            eligibleSubtotal = currentCart.getItems().stream()
+                .filter(i -> coupon.getSellerId().equals(i.getSellerId()))
+                .mapToDouble(i -> i.getPrice() * i.getQuantity())
+                .sum();
+                
+            if (eligibleSubtotal <= 0) {
+                throw new com.bookheaven.cart_service.exception.InvalidCouponException("Invalid coupon");
+            }
+        }
+        
+        // Validate coupon with eligible subtotal
+        couponService.validateCoupon(couponCode, eligibleSubtotal);
         
         cart.setAppliedCouponCode(couponCode.toUpperCase());
         cartRepository.save(cart);
         return buildCartResponse(cart);
     }
 
+    @org.springframework.retry.annotation.Retryable(
+            retryFor = org.springframework.orm.ObjectOptimisticLockingFailureException.class,
+            maxAttempts = 3,
+            backoff = @org.springframework.retry.annotation.Backoff(delay = 100)
+    )
     public CartResponse removeCoupon(UUID userId) {
         Cart cart = getExistingCart(userId);
         cart.setAppliedCouponCode(null);

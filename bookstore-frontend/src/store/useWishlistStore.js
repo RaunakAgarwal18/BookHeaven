@@ -10,7 +10,7 @@ const useWishlistStore = create((set, get) => ({
     set({ loading: true, error: null });
     try {
       const response = await apiClient.get('/user/wishlist');
-      set({ wishlistIds: new Set(response.data), loading: false });
+      set({ wishlistIds: new Set(response.data.map(String)), loading: false });
     } catch (error) {
       console.error('Failed to fetch wishlist', error);
       set({ error: error.response?.data?.message || 'Failed to fetch wishlist', loading: false });
@@ -18,7 +18,7 @@ const useWishlistStore = create((set, get) => ({
   },
 
   toggleWishlist: async (bookId) => {
-    const currentIds = get().wishlistIds;
+    const currentIds = get().wishlistIds; bookId = String(bookId);
     const isWishlisted = currentIds.has(bookId);
     
     // Optimistic update

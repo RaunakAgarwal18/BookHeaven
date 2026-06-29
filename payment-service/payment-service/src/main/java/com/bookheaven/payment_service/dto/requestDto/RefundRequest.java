@@ -5,6 +5,7 @@ import java.util.UUID;
 
 @Data
 public class RefundRequest {
+    private UUID eventId;
     private UUID orderId;
     private Double amount;
     private String reason;

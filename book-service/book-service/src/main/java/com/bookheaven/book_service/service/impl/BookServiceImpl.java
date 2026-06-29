@@ -4,12 +4,12 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.bookheaven.book_service.dto.requestDto.AddBookRequest;
-import com.bookheaven.book_service.dto.requestDto.StockUpdateRequest;
+import com.bookheaven.common.dto.request.StockUpdateRequest;
 import com.bookheaven.book_service.dto.requestDto.UpdateBookRequest;
 import com.bookheaven.book_service.dto.requestDto.UpdateListingRequest;
 import com.bookheaven.book_service.dto.responseDto.BookDetailResponse;
-import com.bookheaven.book_service.dto.responseDto.BookPublicResponse;
-import com.bookheaven.book_service.dto.responseDto.PaginatedResponse;
+import com.bookheaven.common.dto.response.BookPublicResponse;
+import com.bookheaven.common.dto.response.PaginatedResponse;
 import com.bookheaven.book_service.entity.Book;
 import com.bookheaven.book_service.entity.SellerListing;
 import com.bookheaven.book_service.exception.BookNotFoundException;
@@ -194,18 +194,7 @@ public class BookServiceImpl implements BookService {
 
     // ===================== SEARCH =====================
 
-    @Override
-    public PaginatedResponse<BookPublicResponse> searchBooks(String title, String author, String category, String isbn,
-                                   Integer pageNumber, Integer pageSize) {
-        Pageable pageable = AppUtil.createPageable(pageNumber, pageSize);
-        Page<Book> books;
-        if (title != null)    books = bookRepository.findByTitleContaining(title, pageable);
-        else if (author != null)   books = bookRepository.findByAuthorContaining(author, pageable);
-        else if (category != null) books = bookRepository.findByCategoryContaining(category, pageable);
-        else if (isbn != null)     books =  bookRepository.findByIsbnWithListings(normalizeIsbn(isbn), pageable);
-        else books = getAllBooks(pageable);
-        return getPageResponseEntity(books);
-    }
+
 
     // ===================== GET BOOK BY ID =====================
 
@@ -267,7 +256,7 @@ public class BookServiceImpl implements BookService {
         return sellerListingRepository.findByBookIdOrderByPriceAsc(bookId);
     }
 
-    // ===================== BULK (Internal — cart/order) =====================
+    // ===================== BULK (Internal – cart/order) =====================
 
     @Override
     public List<SellerListing> getBulkListings(List<Long> listingIds) {
@@ -278,31 +267,79 @@ public class BookServiceImpl implements BookService {
 
     @Transactional
     @Override
+    @org.springframework.retry.annotation.Retryable(
+            retryFor = {
+                org.springframework.orm.ObjectOptimisticLockingFailureException.class, 
+                com.bookheaven.book_service.exception.InvalidCopiesException.class
+            },
+            maxAttempts = 5,
+            backoff = @org.springframework.retry.annotation.Backoff(delay = 100)
+    )
     public void reduceStockBookList(List<StockUpdateRequest> list) {
-        for (StockUpdateRequest req : list) {
-            SellerListing listing = getListingById(req.getBookId());
-            if (listing.getCopiesAvailable() - req.getQuantity() < 0) {
-                throw new InvalidCopiesException("Not enough copies available for listing id: " + req.getBookId());
+        List<String> acquiredLocks = new ArrayList<>();
+        try {
+            for (StockUpdateRequest req : list) {
+                String lockKey = "lock:listing:" + req.getBookId();
+                
+                boolean locked = redisService.setIfAbsent(lockKey, "locked", 10);
+                if (!locked) {
+                    throw new InvalidCopiesException("High traffic: This book is currently being processed in another checkout. Please try again.");
+                }
+                acquiredLocks.add(lockKey);
+
+                SellerListing listing = getListingById(req.getBookId());
+                if (listing.getCopiesAvailable() - req.getQuantity() < 0) {
+                    throw new InvalidCopiesException("Not enough copies available for listing id: " + req.getBookId());
+                }
+                listing.setCopiesAvailable(listing.getCopiesAvailable() - req.getQuantity());
+                bookEventProducer.publishBookUpdate(listing.getBook().getId());
+                
+                String cacheKey = "books:detail:" + req.getBookId();
+                if(redisService.containsKey(cacheKey)){
+                    redisService.deleteKey(cacheKey);
+                }
             }
-            listing.setCopiesAvailable(listing.getCopiesAvailable() - req.getQuantity());
-            bookEventProducer.publishBookUpdate(listing.getBook().getId());
-            String cacheKey = "books:detail:"+req.getBookId();
-            if(redisService.containsKey(cacheKey)){
-                redisService.deleteKey(cacheKey);
+        } finally {
+            for (String lock : acquiredLocks) {
+                redisService.deleteKey(lock);
             }
         }
     }
 
     @Transactional
     @Override
+    @org.springframework.retry.annotation.Retryable(
+            retryFor = {
+                org.springframework.orm.ObjectOptimisticLockingFailureException.class, 
+                com.bookheaven.book_service.exception.InvalidCopiesException.class
+            },
+            maxAttempts = 5,
+            backoff = @org.springframework.retry.annotation.Backoff(delay = 100)
+    )
     public void restoreStockBookList(List<StockUpdateRequest> list) {
-        for (StockUpdateRequest req : list) {
-            SellerListing listing = getListingById(req.getBookId());
-            listing.setCopiesAvailable(listing.getCopiesAvailable() + req.getQuantity());
-            bookEventProducer.publishBookUpdate(listing.getBook().getId());
-            String cacheKey = "books:detail:"+req.getBookId();
-            if(redisService.containsKey(cacheKey)){
-                redisService.deleteKey(cacheKey);
+        List<String> acquiredLocks = new ArrayList<>();
+        try {
+            for (StockUpdateRequest req : list) {
+                String lockKey = "lock:listing:" + req.getBookId();
+                
+                boolean locked = redisService.setIfAbsent(lockKey, "locked", 10);
+                if (!locked) {
+                    throw new InvalidCopiesException("High traffic: This book is currently being processed. Please try again.");
+                }
+                acquiredLocks.add(lockKey);
+
+                SellerListing listing = getListingById(req.getBookId());
+                listing.setCopiesAvailable(listing.getCopiesAvailable() + req.getQuantity());
+                bookEventProducer.publishBookUpdate(listing.getBook().getId());
+                
+                String cacheKey = "books:detail:" + req.getBookId();
+                if(redisService.containsKey(cacheKey)){
+                    redisService.deleteKey(cacheKey);
+                }
+            }
+        } finally {
+            for (String lock : acquiredLocks) {
+                redisService.deleteKey(lock);
             }
         }
     }

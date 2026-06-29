@@ -1,8 +1,8 @@
 package com.bookheaven.payment_service.service.impl;
 
-import com.bookheaven.payment_service.dto.requestDto.InitiatePaymentRequest;
+import com.bookheaven.common.dto.request.InitiatePaymentRequest;
 import com.bookheaven.payment_service.dto.requestDto.RefundRequest;
-import com.bookheaven.payment_service.dto.responseDto.InitiatePaymentResponse;
+import com.bookheaven.common.dto.response.InitiatePaymentResponse;
 import com.bookheaven.payment_service.dto.responseDto.PaymentResponse;
 import com.bookheaven.payment_service.dto.strategy.GatewayOrderResponse;
 import com.bookheaven.payment_service.dto.strategy.WebhookPayload;
@@ -59,6 +59,7 @@ public class PaymentServiceImpl implements PaymentService {
                     .status(Payment.PaymentStatus.PENDING)
                     .gatewayOrderId(gatewayOrderId)
                     .provider(provider)
+                    .refundedAmount(0.0)
                     .build();
             paymentRepository.save(payment);
 
@@ -132,8 +133,8 @@ public class PaymentServiceImpl implements PaymentService {
                 .orElseThrow(
                         () -> new PaymentNotFoundException("Payment not found for orderId: " + request.getOrderId()));
 
-        if (payment.getStatus() != Payment.PaymentStatus.SUCCESS) {
-            throw new InvalidRefundException("Cannot refund a payment that is not successful");
+        if (payment.getStatus() != Payment.PaymentStatus.SUCCESS && payment.getStatus() != Payment.PaymentStatus.PARTIALLY_REFUNDED) {
+            throw new InvalidRefundException("Cannot refund a payment that is not successful or partially refunded");
         }
 
         try {
@@ -142,11 +143,23 @@ public class PaymentServiceImpl implements PaymentService {
             String provider = payment.getProvider() != null ? payment.getProvider() : "razorpay";
             PaymentGatewayStrategy strategy = getStrategy(provider);
 
-            String refundId = strategy.refund(payment, request);
+            String idempotencyKey = request.getEventId() != null ? request.getEventId().toString() : UUID.randomUUID().toString();
+            String refundId = strategy.refund(payment, request, idempotencyKey);
 
-            payment.setStatus(Payment.PaymentStatus.REFUNDED);
+            Double currentRefunded = payment.getRefundedAmount() != null ? payment.getRefundedAmount() : 0.0;
+            Double newRefunded = currentRefunded + request.getAmount();
+
+            if (newRefunded >= payment.getAmount() - 0.01) {
+                payment.setStatus(Payment.PaymentStatus.REFUNDED);
+            } else {
+                payment.setStatus(Payment.PaymentStatus.PARTIALLY_REFUNDED);
+            }
+            payment.setRefundedAmount(newRefunded);
             payment.setRefundId(refundId);
             paymentRepository.save(payment);
+
+            // Notify order service that refund is complete
+            orderClient.completeRefund(payment.getOrderId());
 
             return toPaymentResponse(payment);
 

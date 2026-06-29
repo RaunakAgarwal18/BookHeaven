@@ -6,6 +6,8 @@ import org.springframework.amqp.support.converter.MessageConverter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+import static com.bookheaven.common.constant.RabbitMqConstant.*;
+
 @Configuration
 public class RabbitMqConfig {
 
@@ -45,6 +47,39 @@ public class RabbitMqConfig {
     @Bean
     public Binding bindingPayout(Queue sellerPayoutQueue, TopicExchange sellerPayoutExchange) {
         return BindingBuilder.bind(sellerPayoutQueue).to(sellerPayoutExchange).with(PAYOUT_ROUTING_KEY);
+    }
+
+    @Bean
+    public TopicExchange refundExchange() {
+        return new TopicExchange(REFUND_EXCHANGE);
+    }
+
+    @Bean
+    public Queue refundDelayQueue() {
+        return QueueBuilder.durable(REFUND_DELAY_QUEUE)
+                .ttl(604800000) // 1 week in ms
+                .deadLetterExchange(REFUND_EXCHANGE)
+                .deadLetterRoutingKey(REFUND_PROCESSING_KEY)
+                .build();
+    }
+
+    @Bean
+    public Queue refundProcessingQueue() {
+        return QueueBuilder.durable(REFUND_PROCESSING_QUEUE).build();
+    }
+
+    @Bean
+    public Binding refundDelayBinding() {
+        return BindingBuilder.bind(refundDelayQueue())
+                .to(refundExchange())
+                .with(REFUND_DELAY_KEY);
+    }
+
+    @Bean
+    public Binding refundProcessingBinding() {
+        return BindingBuilder.bind(refundProcessingQueue())
+                .to(refundExchange())
+                .with(REFUND_PROCESSING_KEY);
     }
 
     @Bean

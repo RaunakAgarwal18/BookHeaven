@@ -1,6 +1,6 @@
 package com.bookheaven.order_service.exception;
 
-import com.bookheaven.order_service.dto.ErrorResponse;
+import com.bookheaven.common.dto.response.ErrorResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -29,10 +29,17 @@ public class GlobalExceptionHandler {
     @ExceptionHandler({
             InsufficientStockException.class,
             EmptyCartException.class,
-            OrderCancellationException.class
+            OrderCancellationException.class,
+            InvalidCouponException.class
     })
     public ResponseEntity<ErrorResponse> handleConflict(Exception ex) {
         return buildResponse(ex.getMessage(), HttpStatus.CONFLICT);
+    }
+
+    // 🔴 400 - Bad Request (cancellation window expired)
+    @ExceptionHandler(OrderCancellationWindowException.class)
+    public ResponseEntity<ErrorResponse> handleCancellationWindow(Exception ex) {
+        return buildResponse(ex.getMessage(), HttpStatus.BAD_REQUEST);
     }
 
     // 🔴 502 - External service failure
@@ -56,3 +63,5 @@ public class GlobalExceptionHandler {
                         .build());
     }
 }
+
+

@@ -1,7 +1,7 @@
 package com.bookheaven.user_service.service.impl;
 
 import com.bookheaven.user_service.constant.AppConstants;
-import com.bookheaven.user_service.dto.event.ContactEmailEvent;
+import com.bookheaven.common.dto.event.ContactEmailEvent;
 import com.bookheaven.user_service.dto.requestDto.ContactRequest;
 import com.bookheaven.user_service.service.ContactFormService;
 import lombok.RequiredArgsConstructor;

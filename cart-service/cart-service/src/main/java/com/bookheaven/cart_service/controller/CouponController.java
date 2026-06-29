@@ -47,6 +47,12 @@ public class CouponController {
         return ResponseEntity.ok().build();
     }
 
+    @PostMapping("/{code}/decrement-usage")
+    public ResponseEntity<Void> decrementUsage(@PathVariable String code) {
+        couponService.decrementUsage(code);
+        return ResponseEntity.ok().build();
+    }
+
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteCoupon(@PathVariable UUID id, Authentication authentication) {
         couponService.deleteCoupon(id, authentication);

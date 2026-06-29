@@ -71,6 +71,10 @@ public class SellerListing {
 
     // ---------------- AUDIT ----------------
 
+    @Version
+    @Column(name = "version")
+    private Long version;
+
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;

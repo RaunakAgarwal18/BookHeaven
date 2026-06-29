@@ -15,6 +15,12 @@ public interface SellerLedgerRepository extends JpaRepository<SellerLedger, Long
 
     List<SellerLedger> findBySettlementStatus(SellerLedger.SettlementStatus settlementStatus);
 
+    @Query("SELECT s FROM SellerLedger s WHERE s.settlementStatus = :status AND s.createdAt < :cutoffDate")
+    List<SellerLedger> findEligibleForPayout(
+            @Param("status") SellerLedger.SettlementStatus status, 
+            @Param("cutoffDate") java.time.LocalDateTime cutoffDate
+    );
+
     @Modifying
     @Query("UPDATE SellerLedger s SET s.settlementStatus = :status, s.gatewayTransferId = :transferId WHERE s.settlementId = :settlementId")
     int updateStatusBySettlementId(
@@ -26,4 +32,12 @@ public interface SellerLedgerRepository extends JpaRepository<SellerLedger, Long
     @Modifying
     @Query("UPDATE SellerLedger s SET s.settlementStatus = 'PENDING', s.settlementId = NULL, s.gatewayTransferId = NULL WHERE s.settlementStatus = 'FAILED'")
     int resetFailedToPending();
+
+    @Modifying
+    @Query("UPDATE SellerLedger s SET s.settlementStatus = com.bookheaven.payment_service.entity.SellerLedger.SettlementStatus.VOIDED WHERE s.orderId = :orderId AND s.settlementStatus = com.bookheaven.payment_service.entity.SellerLedger.SettlementStatus.PENDING")
+    int voidLedgerEntriesByOrderId(@Param("orderId") UUID orderId);
+
+    @Modifying
+    @Query("UPDATE SellerLedger s SET s.settlementStatus = com.bookheaven.payment_service.entity.SellerLedger.SettlementStatus.VOIDED WHERE s.orderItemId IN :orderItemIds AND s.settlementStatus = com.bookheaven.payment_service.entity.SellerLedger.SettlementStatus.PENDING")
+    int voidLedgerEntriesByOrderItemIds(@Param("orderItemIds") List<Long> orderItemIds);
 }

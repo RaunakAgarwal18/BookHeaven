@@ -1,6 +1,6 @@
 package com.bookheaven.email_service.util;
 
-import com.bookheaven.email_service.dto.response.EmailResponse;
+import com.bookheaven.common.dto.response.EmailResponse;
 
 import java.time.LocalDateTime;
 

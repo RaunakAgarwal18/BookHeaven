@@ -157,7 +157,7 @@ const AdminDashboardPage = () => {
   };
 
   return (
-    <div className="container mt-8 mb-8" style={{ maxWidth: '1200px' }}>
+    <div style={{ width: '100%', maxWidth: '1500px', margin: '2rem auto', padding: '0 2rem 4rem 2rem' }}>
       {/* Toast Notification */}
       {toast && (
         <div style={{

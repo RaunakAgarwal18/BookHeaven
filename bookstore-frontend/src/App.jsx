@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
+import { AnimatePresence, motion } from 'framer-motion';
 import Navbar from './components/Navbar';
 import ContactFooter from './components/ContactFooter';
 import HomePage from './pages/HomePage';
@@ -19,6 +20,47 @@ import AdminCouponsPage from './pages/AdminCouponsPage';
 import SellerCouponsPage from './pages/SellerCouponsPage';
 import AdminDashboardPage from './pages/AdminDashboardPage';
 import OAuth2CallbackPage from './pages/OAuth2CallbackPage';
+
+const PageWrapper = ({ children }) => {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 15 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -15 }}
+      transition={{ duration: 0.3 }}
+      style={{ display: 'flex', flexDirection: 'column', flex: 1 }}
+    >
+      {children}
+    </motion.div>
+  );
+};
+
+const AnimatedRoutes = () => {
+  const location = useLocation();
+  return (
+    <AnimatePresence mode="wait">
+      <Routes location={location} key={location.pathname}>
+        <Route path="/" element={<PageWrapper><HomePage /></PageWrapper>} />
+        <Route path="/login" element={<PageWrapper><LoginPage /></PageWrapper>} />
+        <Route path="/signup" element={<PageWrapper><SignupPage /></PageWrapper>} />
+        <Route path="/verify-otp" element={<PageWrapper><VerifyOtpPage /></PageWrapper>} />
+        <Route path="/cart" element={<PageWrapper><CartPage /></PageWrapper>} />
+        <Route path="/books/:id" element={<PageWrapper><BookDetailsPage /></PageWrapper>} />
+        <Route path="/order-success" element={<PageWrapper><OrderSuccessPage /></PageWrapper>} />
+        <Route path="/profile" element={<PageWrapper><ProfilePage /></PageWrapper>} />
+        <Route path="/forgot-password" element={<PageWrapper><ForgotPasswordPage /></PageWrapper>} />
+        <Route path="/reset-password" element={<PageWrapper><ResetPasswordPage /></PageWrapper>} />
+        <Route path="/seller/dashboard" element={<PageWrapper><SellerDashboardPage /></PageWrapper>} />
+        <Route path="/seller/coupons" element={<PageWrapper><SellerCouponsPage /></PageWrapper>} />
+        <Route path="/orders" element={<PageWrapper><MyOrdersPage /></PageWrapper>} />
+        <Route path="/wishlist" element={<PageWrapper><WishlistPage /></PageWrapper>} />
+        <Route path="/admin/dashboard" element={<PageWrapper><AdminDashboardPage /></PageWrapper>} />
+        <Route path="/admin/coupons" element={<PageWrapper><AdminCouponsPage /></PageWrapper>} />
+        <Route path="/oauth2/callback" element={<PageWrapper><OAuth2CallbackPage /></PageWrapper>} />
+      </Routes>
+    </AnimatePresence>
+  );
+};
 
 function App() {
   const [rateLimitMessage, setRateLimitMessage] = useState(null);
@@ -64,26 +106,7 @@ function App() {
       )}
 
       <main>
-
-        <Routes>
-          <Route path="/" element={<HomePage />} />
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/signup" element={<SignupPage />} />
-          <Route path="/verify-otp" element={<VerifyOtpPage />} />
-          <Route path="/cart" element={<CartPage />} />
-          <Route path="/books/:id" element={<BookDetailsPage />} />
-          <Route path="/order-success" element={<OrderSuccessPage />} />
-          <Route path="/profile" element={<ProfilePage />} />
-          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-          <Route path="/reset-password" element={<ResetPasswordPage />} />
-          <Route path="/seller/dashboard" element={<SellerDashboardPage />} />
-          <Route path="/seller/coupons" element={<SellerCouponsPage />} />
-          <Route path="/orders" element={<MyOrdersPage />} />
-          <Route path="/wishlist" element={<WishlistPage />} />
-          <Route path="/admin/dashboard" element={<AdminDashboardPage />} />
-          <Route path="/admin/coupons" element={<AdminCouponsPage />} />
-          <Route path="/oauth2/callback" element={<OAuth2CallbackPage />} />
-        </Routes>
+        <AnimatedRoutes />
       </main>
       
       <ContactFooter />

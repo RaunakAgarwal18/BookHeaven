@@ -26,6 +26,7 @@ public class BookEventConsumer {
                     .category(bookEvent.getCategory())
                     .isbn(bookEvent.getIsbn())
                     .img(bookEvent.getImg())
+                    .cheapestListingId(bookEvent.getCheapestListingId())
                     .lowestPrice(bookEvent.getLowestPrice())
                     .lowestCurrency(bookEvent.getLowestCurrency())
                     .totalCopiesAvailable(bookEvent.getTotalCopiesAvailable())

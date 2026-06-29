@@ -80,6 +80,12 @@ public class OrderController {
         return ResponseEntity.ok().build();
     }
 
+    @PutMapping("/{orderId}/refund-complete")
+    public ResponseEntity<Void> completeRefund(@PathVariable UUID orderId) {
+        orderService.completeRefund(orderId);
+        return ResponseEntity.ok().build();
+    }
+
     // ===================== SELLER ENDPOINTS =====================
 
     @GetMapping("/seller")

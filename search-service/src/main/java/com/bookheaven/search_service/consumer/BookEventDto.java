@@ -17,6 +17,7 @@ public class BookEventDto {
     private String category;
     private String img;
     private String isbn;
+    private Long cheapestListingId;
     private Double lowestPrice;
     private String lowestCurrency;
     private int totalCopiesAvailable;

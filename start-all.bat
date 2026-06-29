@@ -51,6 +51,14 @@ set FRONTEND_PORT=5173
 set ARCH_EXPLORER_PORT=3001
 
 :: -----------------------------------------------
+:: STEP -1 - Kill Existing Processes on Required Ports
+:: -----------------------------------------------
+echo [0/5] Killing any existing processes on required ports...
+powershell -Command "$ports = @(%EUREKA_PORT%, %GATEWAY_PORT%, %USER_PORT%, %BOOK_PORT%, %REVIEW_PORT%, %CART_PORT%, %ORDER_PORT%, %PAYMENT_PORT%, %EMAIL_PORT%, %SEARCH_PORT%, %FRONTEND_PORT%, %ARCH_EXPLORER_PORT%); foreach($p in $ports) { $conns = Get-NetTCPConnection -LocalPort $p -ErrorAction SilentlyContinue; foreach($c in $conns) { try { Stop-Process -Id $c.OwningProcess -Force -ErrorAction SilentlyContinue } catch {} } }"
+echo Ports cleared!
+echo.
+
+:: -----------------------------------------------
 :: STEP 0 - Infrastructure (Docker)
 :: -----------------------------------------------
 echo [0/4] Starting Infrastructure Docker containers...
@@ -149,7 +157,7 @@ echo Waiting 10 seconds for API Gateway to be ready...
 timeout /t 10 /nobreak >nul
 
 echo [4/5] Starting Bookstore Frontend on port %FRONTEND_PORT%...
-start "Bookstore Frontend" cmd /k "cd /d %ROOT%\bookstore-frontend && npm run dev"
+start "Bookstore Frontend" cmd /k "cd /d %ROOT%\bookstore-frontend && npm run dev -- --port %FRONTEND_PORT% --strictPort"
 
 :: -----------------------------------------------
 :: STEP 5 - Architecture Explorer

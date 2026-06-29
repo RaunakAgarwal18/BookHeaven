@@ -2,7 +2,7 @@ package com.bookheaven.email_service.service.handler;
 
 import com.bookheaven.email_service.constants.EmailConstant;
 import com.bookheaven.email_service.constants.MailTemplate;
-import com.bookheaven.email_service.dto.request.PasswordResetRequest;
+import com.bookheaven.common.dto.request.PasswordResetRequest;
 import com.bookheaven.email_service.util.EmailSenderUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;

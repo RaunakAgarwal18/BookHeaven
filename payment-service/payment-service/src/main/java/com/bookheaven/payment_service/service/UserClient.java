@@ -1,6 +1,6 @@
 package com.bookheaven.payment_service.service;
 
-import com.bookheaven.payment_service.dto.responseDto.UserResponse;
+import com.bookheaven.common.dto.response.UserResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;

@@ -56,7 +56,7 @@ const WishlistPage = () => {
   };
 
   return (
-    <div className="container mt-8 mb-8">
+    <div style={{ width: '100%', maxWidth: '1500px', margin: '2rem auto', padding: '0 2rem 4rem 2rem' }}>
       {cartMessage && (
         <div style={{
           position: 'fixed',
@@ -90,7 +90,7 @@ const WishlistPage = () => {
           <Loader2 className="animate-spin" size={40} style={{ color: 'var(--primary-color)' }} />
         </div>
       ) : books.length > 0 ? (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '2rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '1.5rem' }}>
           {books.map((book) => (
             <BookCard 
               key={book.bookId} 

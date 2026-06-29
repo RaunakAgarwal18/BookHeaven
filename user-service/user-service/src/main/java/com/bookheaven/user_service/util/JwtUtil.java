@@ -6,20 +6,48 @@ import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
-import javax.crypto.SecretKey;
+import java.security.KeyFactory;
+import java.security.PrivateKey;
+import java.security.PublicKey;
+import java.security.spec.PKCS8EncodedKeySpec;
+import java.security.spec.X509EncodedKeySpec;
+import java.util.Base64;
 import java.util.Date;
 import java.util.UUID;
 
 @Component
 public class JwtUtil {
-    @Value("${jwt.secret}")
-    private String secret;
+    @Value("${jwt.private.key}")
+    private String privateKeyPem;
+
+    @Value("${jwt.public.key}")
+    private String publicKeyPem;
 
     @Value("${jwt.expiration}")
     private long expiration;
 
-    private SecretKey getKey() {
-        return Keys.hmacShaKeyFor(secret.getBytes());
+    // Helper to parse the Base64 string into a Java PrivateKey object
+    private PrivateKey getPrivateKey() {
+        try {
+            byte[] encoded = Base64.getDecoder().decode(privateKeyPem);
+            KeyFactory keyFactory = KeyFactory.getInstance("RSA");
+            PKCS8EncodedKeySpec keySpec = new PKCS8EncodedKeySpec(encoded);
+            return keyFactory.generatePrivate(keySpec);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to parse private key", e);
+        }
+    }
+
+    // Helper to parse the Base64 string into a Java PublicKey object
+    private PublicKey getPublicKey() {
+        try {
+            byte[] encoded = Base64.getDecoder().decode(publicKeyPem);
+            KeyFactory keyFactory = KeyFactory.getInstance("RSA");
+            X509EncodedKeySpec keySpec = new X509EncodedKeySpec(encoded);
+            return keyFactory.generatePublic(keySpec);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to parse public key", e);
+        }
     }
     public String generateAccessToken(UUID id, String email, String userName, String role){
         return Jwts.builder()
@@ -29,7 +57,7 @@ public class JwtUtil {
                 .claim("role", role)
                 .issuedAt(new Date())
                 .expiration(new Date(System.currentTimeMillis() + expiration)) //1 day
-                .signWith(getKey())
+                .signWith(getPrivateKey(), Jwts.SIG.RS256)
                 .compact();
     }
     public String generateRefreshToken(UUID id, String email, String userName, String role){
@@ -40,7 +68,7 @@ public class JwtUtil {
                 .claim("role", role)
                 .issuedAt(new Date())
                 .expiration(new Date(System.currentTimeMillis() + expiration*7)) // 7 days
-                .signWith(getKey())
+                .signWith(getPrivateKey(), Jwts.SIG.RS256)
                 .compact();
     }
     public UUID extractId(String token){
@@ -57,7 +85,7 @@ public class JwtUtil {
     }
 
     private Claims getClaims(String token) {
-        return Jwts.parser().verifyWith(getKey())
+        return Jwts.parser().verifyWith(getPublicKey())
                 .build().parseSignedClaims(token).getPayload();
     }
 

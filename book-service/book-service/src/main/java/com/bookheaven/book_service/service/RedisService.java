@@ -8,4 +8,5 @@ public interface RedisService {
     public void incrementValueByOne(String key);
     public void deleteKey(String key);
     public void deleteKeyWithPattern(String pattern);
+    public boolean setIfAbsent(String key, String value, long timeoutSeconds);
 }

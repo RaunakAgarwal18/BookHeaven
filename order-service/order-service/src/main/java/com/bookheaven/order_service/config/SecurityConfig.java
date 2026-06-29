@@ -20,6 +20,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/order/{id}/confirm").hasRole("SYSTEM")
                         .requestMatchers("/api/order/{id}/fail").hasRole("SYSTEM")
+                        .requestMatchers("/api/order/{id}/refund-complete").hasRole("SYSTEM")
                         .requestMatchers("/api/order/seller/**").hasAnyRole("SELLER", "ADMIN")
                         .requestMatchers("/api/order/admin/**").hasRole("ADMIN")
                         .requestMatchers("/api/order/**").authenticated()

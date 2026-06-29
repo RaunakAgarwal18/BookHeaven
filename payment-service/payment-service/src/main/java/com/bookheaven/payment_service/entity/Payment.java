@@ -63,6 +63,14 @@ public class Payment {
     @Column(name = "refund_id", length = 100)
     private String refundId;            // Razorpay refund_id (set after refund)
 
+    @Column(name = "refunded_amount")
+    @Builder.Default
+    private Double refundedAmount = 0.0;
+
+    @Version
+    @Column(name = "version")
+    private Long version;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -75,6 +83,8 @@ public class Payment {
         PENDING,
         SUCCESS,
         FAILED,
+        REFUND_IN_PROGRESS,
+        PARTIALLY_REFUNDED,
         REFUNDED
     }
 }

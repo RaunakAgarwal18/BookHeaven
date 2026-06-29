@@ -1,6 +1,6 @@
 package com.bookheaven.user_service.service;
 
-import com.bookheaven.user_service.dto.event.WelcomeEmailEvent;
+import com.bookheaven.common.dto.event.WelcomeEmailEvent;
 import lombok.RequiredArgsConstructor;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.stereotype.Service;

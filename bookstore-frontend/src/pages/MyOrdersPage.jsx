@@ -108,7 +108,7 @@ const OrderCard = ({ order, onCancel }) => {
           <span style={{ fontWeight: '700', fontSize: '1.05rem', color: 'var(--text-color)' }}>
             {fmt.money(order.totalAmount, order.currency)}
           </span>
-          {order.status === 'PENDING' && (
+          {['PENDING', 'CONFIRMED', 'PARTIALLY_REFUNDED', 'PARTIALLY_CANCELLED'].includes(order.status) && (
             <button
               onClick={handleCancel}
               disabled={cancelling}
@@ -155,14 +155,21 @@ const OrderCard = ({ order, onCancel }) => {
                     <BookOpen size={14} color="#fff" />
                   </div>
                   <div style={{ minWidth: 0 }}>
-                    <Link
-                      to={`/books/${item.bookId}`}
-                      style={{ fontWeight: '600', fontSize: '0.9rem', color: 'var(--text-color)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '260px', textDecoration: 'none', transition: 'color 0.15s' }}
-                      onMouseEnter={e => e.currentTarget.style.color = 'var(--primary-color)'}
-                      onMouseLeave={e => e.currentTarget.style.color = 'var(--text-color)'}
-                    >
-                      {item.title}
-                    </Link>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                      <Link
+                        to={`/books/${item.bookId}`}
+                        style={{ fontWeight: '600', fontSize: '0.9rem', color: 'var(--text-color)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '260px', textDecoration: 'none', transition: 'color 0.15s' }}
+                        onMouseEnter={e => e.currentTarget.style.color = 'var(--primary-color)'}
+                        onMouseLeave={e => e.currentTarget.style.color = 'var(--text-color)'}
+                      >
+                        {item.title}
+                      </Link>
+                      {item.status && item.status !== order.status && (
+                        <div style={{ transform: 'scale(0.85)', transformOrigin: 'left center' }}>
+                          <Badge status={item.status} />
+                        </div>
+                      )}
+                    </div>
                     <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>by {item.author}</div>
                   </div>
                 </div>
@@ -232,7 +239,7 @@ const Pagination = ({ page, totalPages, onChange }) => {
     <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem', marginTop: '2rem' }}>
       <button
         onClick={() => onChange(page - 1)} disabled={page === 0}
-        style={{ padding: '0.45rem 0.8rem', borderRadius: '8px', border: '1px solid var(--border-color)', backgroundColor: 'transparent', color: page === 0 ? 'var(--text-muted)' : 'var(--text-color)', cursor: page === 0 ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center' }}
+        style={{ padding: '0.45rem 0.8rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'transparent', backgroundImage: 'none', boxShadow: 'none', color: page === 0 ? 'var(--text-muted)' : 'var(--text-color)', cursor: page === 0 ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center' }}
       >
         <ChevronLeft size={16} />
       </button>
@@ -245,7 +252,9 @@ const Pagination = ({ page, totalPages, onChange }) => {
             style={{
               padding: '0.45rem 0.85rem', borderRadius: '8px', fontSize: '0.9rem', fontWeight: i === page ? '700' : '400',
               border: `1px solid ${i === page ? 'var(--primary-color)' : 'var(--border-color)'}`,
-              backgroundColor: i === page ? 'var(--primary-color)' : 'transparent',
+              background: i === page ? 'var(--primary-color)' : 'transparent',
+              backgroundImage: 'none',
+              boxShadow: 'none',
               color: i === page ? '#fff' : 'var(--text-color)', cursor: 'pointer',
             }}
           >
@@ -256,7 +265,7 @@ const Pagination = ({ page, totalPages, onChange }) => {
 
       <button
         onClick={() => onChange(page + 1)} disabled={page === totalPages - 1}
-        style={{ padding: '0.45rem 0.8rem', borderRadius: '8px', border: '1px solid var(--border-color)', backgroundColor: 'transparent', color: page === totalPages - 1 ? 'var(--text-muted)' : 'var(--text-color)', cursor: page === totalPages - 1 ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center' }}
+        style={{ padding: '0.45rem 0.8rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'transparent', backgroundImage: 'none', boxShadow: 'none', color: page === totalPages - 1 ? 'var(--text-muted)' : 'var(--text-color)', cursor: page === totalPages - 1 ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center' }}
       >
         <ChevronRight size={16} />
       </button>
@@ -279,7 +288,9 @@ const FilterBar = ({ active, onChange }) => (
           style={{
             padding: '0.35rem 0.9rem', borderRadius: '999px', fontSize: '0.82rem', fontWeight: '600',
             cursor: 'pointer', transition: 'all 0.15s',
-            backgroundColor: isActive ? (cfg?.bg ?? 'var(--primary-color)') : 'transparent',
+            background: isActive ? (cfg?.bg ?? 'var(--primary-color)') : 'transparent',
+            backgroundImage: 'none',
+            boxShadow: 'none',
             border: isActive ? `1px solid ${cfg?.border ?? 'var(--primary-color)'}` : '1px solid var(--border-color)',
             color: isActive ? (cfg?.color ?? '#fff') : 'var(--text-muted)',
           }}

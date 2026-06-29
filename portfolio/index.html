@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Raunak Agarwal — Full Stack Developer</title>
+  <meta name="description" content="Portfolio of Raunak Agarwal — Full Stack Developer from IIT Guwahati. Specializing in Java, Spring Boot microservices, React, and scalable backend systems." />
+  <meta name="keywords" content="Raunak Agarwal, Full Stack Developer, Java Developer, Spring Boot, IIT Guwahati, Portfolio" />
+  <meta property="og:title" content="Raunak Agarwal — Full Stack Developer" />
+  <meta property="og:description" content="Full Stack Developer from IIT Guwahati. Building scalable systems with Java, Spring Boot, React, and modern DevOps." />
+  <meta property="og:type" content="website" />
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+  <!-- Lucide Icons (CDN) -->
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js" defer></script>
+
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <!-- ======== PARTICLE CANVAS ======== -->
+  <canvas id="particle-canvas"></canvas>
+
+  <!-- ======== NAVIGATION ======== -->
+  <nav class="navbar" id="navbar">
+    <div class="nav-container">
+      <a href="#hero" class="nav-logo">RA<span class="logo-dot">.</span></a>
+      <ul class="nav-links" id="nav-links">
+        <li><a href="#about" class="nav-link">About</a></li>
+        <li><a href="#skills" class="nav-link">Skills</a></li>
+        <li><a href="#projects" class="nav-link">Projects</a></li>
+        <li><a href="#experience" class="nav-link">Experience</a></li>
+        <li><a href="#education" class="nav-link">Education</a></li>
+        <li><a href="#achievements" class="nav-link">Achievements</a></li>
+        <li><a href="#contact" class="nav-link">Contact</a></li>
+      </ul>
+      <button class="nav-toggle" id="nav-toggle" aria-label="Toggle navigation">
+        <span class="hamburger"></span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- ======== HERO SECTION ======== -->
+  <section class="hero" id="hero">
+    <div class="hero-content">
+      <p class="hero-greeting reveal">Hello, I'm</p>
+      <h1 class="hero-name reveal">Raunak Agarwal</h1>
+      <div class="hero-title-wrapper reveal">
+        <span class="hero-title-prefix">I'm a&nbsp;</span>
+        <span class="hero-title-typed" id="typed-text"></span>
+        <span class="typed-cursor">|</span>
+      </div>
+      <p class="hero-tagline reveal">
+        Building scalable, production-grade systems with microservices, event-driven architecture, and modern full-stack technologies.
+      </p>
+      <div class="hero-cta reveal">
+        <a href="#projects" class="btn btn-primary">View My Work</a>
+        <a href="#contact" class="btn btn-glass">Get In Touch</a>
+      </div>
+      <div class="hero-socials reveal">
+        <a href="https://github.com/RaunakAgarwal" target="_blank" rel="noopener" class="social-link" aria-label="GitHub">
+          <i data-lucide="github"></i>
+        </a>
+        <a href="https://linkedin.com/in/raunak180803" target="_blank" rel="noopener" class="social-link" aria-label="LinkedIn">
+          <i data-lucide="linkedin"></i>
+        </a>
+        <a href="https://leetcode.com/raunak180803" target="_blank" rel="noopener" class="social-link" aria-label="LeetCode">
+          <i data-lucide="code-2"></i>
+        </a>
+        <a href="mailto:raunak180803@gmail.com" class="social-link" aria-label="Email">
+          <i data-lucide="mail"></i>
+        </a>
+      </div>
+    </div>
+    <a href="#about" class="scroll-indicator" aria-label="Scroll down">
+      <i data-lucide="chevron-down"></i>
+    </a>
+  </section>
+
+  <!-- ======== ABOUT SECTION ======== -->
+  <section class="section about" id="about">
+    <div class="container">
+      <h2 class="section-title reveal">About Me</h2>
+      <p class="section-subtitle reveal">Get to know who I am</p>
+      <div class="about-grid">
+        <div class="about-image-wrapper reveal">
+          <div class="about-image-border">
+            <div class="about-image">
+              <div class="avatar-placeholder" id="avatar-placeholder">
+                <span>RA</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="about-text reveal">
+          <p>
+            I'm <strong>Raunak Agarwal</strong>, a B.Tech student at <strong>IIT Guwahati</strong> pursuing Chemical Engineering with a Minor in Mathematics & Computing. I'm passionate about building <strong>robust, scalable software systems</strong> that solve real-world problems.
+          </p>
+          <p>
+            My expertise spans the full stack — from designing <strong>microservice architectures</strong> with Spring Boot and deploying them with Docker, to crafting responsive UIs with React. I thrive on building systems that handle complexity gracefully, whether it's event-driven workflows with RabbitMQ or real-time search with Elasticsearch.
+          </p>
+          <p>
+            When I'm not coding, you'll find me solving problems on <strong>LeetCode & CodeChef</strong>, editing videos for my YouTube channel, or exploring new technologies.
+          </p>
+          <div class="about-stats">
+            <div class="stat-card glass-card">
+              <span class="stat-number" data-target="8">0</span>
+              <span class="stat-label">Microservices Built</span>
+            </div>
+            <div class="stat-card glass-card">
+              <span class="stat-number" data-target="1700" data-suffix="+">0</span>
+              <span class="stat-label">LeetCode Rating</span>
+            </div>
+            <div class="stat-card glass-card">
+              <span class="stat-number" data-target="5" data-suffix="+">0</span>
+              <span class="stat-label">Projects Shipped</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ======== SKILLS SECTION ======== -->
+  <section class="section skills" id="skills">
+    <div class="container">
+      <h2 class="section-title reveal">Technical Skills</h2>
+      <p class="section-subtitle reveal">Technologies I work with</p>
+      <div class="skills-grid">
+
+        <!-- Backend -->
+        <div class="skill-category glass-card reveal">
+          <div class="skill-category-header">
+            <i data-lucide="server"></i>
+            <h3>Backend</h3>
+          </div>
+          <div class="skill-tags">
+            <span class="skill-tag">Java</span>
+            <span class="skill-tag">Spring Boot</span>
+            <span class="skill-tag">Spring MVC</span>
+            <span class="skill-tag">Spring Security</span>
+            <span class="skill-tag">Spring Cloud</span>
+            <span class="skill-tag">Hibernate</span>
+            <span class="skill-tag">REST APIs</span>
+            <span class="skill-tag">WebSocket</span>
+            <span class="skill-tag">Thymeleaf</span>
+          </div>
+        </div>
+
+        <!-- Frontend -->
+        <div class="skill-category glass-card reveal">
+          <div class="skill-category-header">
+            <i data-lucide="layout"></i>
+            <h3>Frontend</h3>
+          </div>
+          <div class="skill-tags">
+            <span class="skill-tag">React</span>
+            <span class="skill-tag">JavaScript</span>
+            <span class="skill-tag">HTML5</span>
+            <span class="skill-tag">CSS3</span>
+            <span class="skill-tag">Bootstrap</span>
+            <span class="skill-tag">Ajax</span>
+            <span class="skill-tag">jQuery</span>
+          </div>
+        </div>
+
+        <!-- DevOps & Infrastructure -->
+        <div class="skill-category glass-card reveal">
+          <div class="skill-category-header">
+            <i data-lucide="cloud"></i>
+            <h3>DevOps & Infra</h3>
+          </div>
+          <div class="skill-tags">
+            <span class="skill-tag">Docker</span>
+            <span class="skill-tag">RabbitMQ</span>
+            <span class="skill-tag">Kafka</span>
+            <span class="skill-tag">Redis</span>
+            <span class="skill-tag">Prometheus</span>
+            <span class="skill-tag">Grafana</span>
+            <span class="skill-tag">Loki</span>
+            <span class="skill-tag">Eureka</span>
+          </div>
+        </div>
+
+        <!-- Databases -->
+        <div class="skill-category glass-card reveal">
+          <div class="skill-category-header">
+            <i data-lucide="database"></i>
+            <h3>Databases</h3>
+          </div>
+          <div class="skill-tags">
+            <span class="skill-tag">MySQL</span>
+            <span class="skill-tag">Elasticsearch</span>
+            <span class="skill-tag">Spring Data JPA</span>
+          </div>
+        </div>
+
+        <!-- Languages -->
+        <div class="skill-category glass-card reveal">
+          <div class="skill-category-header">
+            <i data-lucide="code"></i>
+            <h3>Languages</h3>
+          </div>
+          <div class="skill-tags">
+            <span class="skill-tag">Java</span>
+            <span class="skill-tag">C</span>
+            <span class="skill-tag">C++</span>
+            <span class="skill-tag">JavaScript</span>
+            <span class="skill-tag">Python</span>
+            <span class="skill-tag">MATLAB</span>
+          </div>
+        </div>
+
+        <!-- Tools -->
+        <div class="skill-category glass-card reveal">
+          <div class="skill-category-header">
+            <i data-lucide="wrench"></i>
+            <h3>Tools</h3>
+          </div>
+          <div class="skill-tags">
+            <span class="skill-tag">Git</span>
+            <span class="skill-tag">Postman</span>
+            <span class="skill-tag">Linux</span>
+            <span class="skill-tag">Resilience4j</span>
+            <span class="skill-tag">Bucket4j</span>
+            <span class="skill-tag">Stripe</span>
+            <span class="skill-tag">Razorpay</span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ======== PROJECTS SECTION ======== -->
+  <section class="section projects" id="projects">
+    <div class="container">
+      <h2 class="section-title reveal">Featured Projects</h2>
+      <p class="section-subtitle reveal">Things I've built</p>
+      <div class="projects-grid">
+
+        <!-- BookHeaven -->
+        <div class="project-card glass-card featured reveal">
+          <div class="project-badge">Featured</div>
+          <div class="project-icon">
+            <i data-lucide="book-open"></i>
+          </div>
+          <h3 class="project-title">BookHeaven</h3>
+          <p class="project-description">
+            A full-scale multi-seller e-commerce bookstore platform built with <strong>8 Spring Boot microservices</strong>. Features order lifecycle management, coupon system, integrated Stripe & Razorpay payment processing, event-driven search indexing via RabbitMQ → Elasticsearch, Redis caching, Resilience4j circuit breakers, and full observability with Prometheus, Grafana & Loki.
+          </p>
+          <div class="project-tech">
+            <span>Java</span><span>Spring Boot</span><span>React</span><span>MySQL</span>
+            <span>RabbitMQ</span><span>Elasticsearch</span><span>Redis</span><span>Docker</span>
+            <span>Stripe</span><span>Razorpay</span><span>Prometheus</span><span>Grafana</span>
+          </div>
+          <div class="project-links">
+            <a href="https://github.com/RaunakAgarwal" target="_blank" rel="noopener" class="project-link">
+              <i data-lucide="github"></i> Source Code
+            </a>
+          </div>
+        </div>
+
+        <!-- B.Tech Thesis -->
+        <div class="project-card glass-card reveal">
+          <div class="project-icon">
+            <i data-lucide="brain"></i>
+          </div>
+          <h3 class="project-title">B.Tech Thesis — Metaheuristic Optimization</h3>
+          <p class="project-description">
+            Research under Prof. Prakash Kotecha. Analyzing and comparing recent 2024 metaheuristic optimization algorithms, and developing a high-performing hybrid algorithm that surpasses both parent algorithms in benchmark performance.
+          </p>
+          <div class="project-tech">
+            <span>Research</span><span>Optimization</span><span>MATLAB</span><span>Python</span>
+          </div>
+          <div class="project-links">
+            <span class="project-status">🔬 Ongoing Research</span>
+          </div>
+        </div>
+
+        <!-- Advanced Contact Manager -->
+        <div class="project-card glass-card reveal">
+          <div class="project-icon">
+            <i data-lucide="contact"></i>
+          </div>
+          <h3 class="project-title">Advanced Contact Manager</h3>
+          <p class="project-description">
+            A feature-rich contact management application with image storage, email verification via OTP, Razorpay payment integration, per-user dashboards, search functionality, and pagination.
+          </p>
+          <div class="project-tech">
+            <span>Spring Boot</span><span>Spring Security</span><span>MySQL</span>
+            <span>Thymeleaf</span><span>Razorpay</span><span>JavaScript</span>
+          </div>
+          <div class="project-links">
+            <a href="https://github.com/RaunakAgarwal" target="_blank" rel="noopener" class="project-link">
+              <i data-lucide="github"></i> Source Code
+            </a>
+          </div>
+        </div>
+
+        <!-- Global Chat Room -->
+        <div class="project-card glass-card reveal">
+          <div class="project-icon">
+            <i data-lucide="message-circle"></i>
+          </div>
+          <h3 class="project-title">Global Chat Room</h3>
+          <p class="project-description">
+            A pseudonymous real-time chat application allowing unlimited users to join and communicate anonymously. Built with WebSocket and STOMP protocol for instant message delivery.
+          </p>
+          <div class="project-tech">
+            <span>Spring Boot</span><span>WebSocket</span><span>STOMP</span>
+            <span>jQuery</span><span>HTML/CSS</span>
+          </div>
+          <div class="project-links">
+            <a href="https://github.com/RaunakAgarwal" target="_blank" rel="noopener" class="project-link">
+              <i data-lucide="github"></i> Source Code
+            </a>
+          </div>
+        </div>
+
+        <!-- MazeHub -->
+        <div class="project-card glass-card reveal">
+          <div class="project-icon">
+            <i data-lucide="gamepad-2"></i>
+          </div>
+          <h3 class="project-title">MazeHub</h3>
+          <p class="project-description">
+            A web-based maze game created for Juniors Squad of Technothlon, Techniche '22. Features user profiles, login system, and an admin portal for managing participant data.
+          </p>
+          <div class="project-tech">
+            <span>Django</span><span>Python</span><span>JavaScript</span><span>HTML/CSS</span>
+          </div>
+          <div class="project-links">
+            <a href="https://github.com/RaunakAgarwal" target="_blank" rel="noopener" class="project-link">
+              <i data-lucide="github"></i> Source Code
+            </a>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ======== EXPERIENCE SECTION ======== -->
+  <section class="section experience" id="experience">
+    <div class="container">
+      <h2 class="section-title reveal">Experience</h2>
+      <p class="section-subtitle reveal">My journey so far</p>
+      <div class="timeline">
+
+        <div class="timeline-item reveal">
+          <div class="timeline-dot"></div>
+          <div class="timeline-content glass-card">
+            <div class="timeline-header">
+              <h3>Core Team Member & Question Paper Head</h3>
+              <span class="timeline-org">Technothlon, Techniche — IIT Guwahati</span>
+            </div>
+            <span class="timeline-date">Jan 2023 — Oct 2023</span>
+            <ul class="timeline-details">
+              <li>Headed a team of 70 organizers, 250 city representatives, and 5 co-core team members</li>
+              <li>Designed one of the toughest logical examination papers as Question Paper Head</li>
+              <li>Contributed to a <strong>36% increase</strong> in registration count</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="timeline-item reveal">
+          <div class="timeline-dot"></div>
+          <div class="timeline-content glass-card">
+            <div class="timeline-header">
+              <h3>Full Stack Developer</h3>
+              <span class="timeline-org">Team WebOps — TEDxIITGuwahati</span>
+            </div>
+            <span class="timeline-date">Oct 2022 — Feb 2023</span>
+            <ul class="timeline-details">
+              <li>Built and maintained the official TEDxIITGuwahati event website</li>
+              <li>Collaborated with the design and content teams for responsive, event-ready pages</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- Placeholder for future experience -->
+        <div class="timeline-item timeline-placeholder reveal">
+          <div class="timeline-dot dot-pulse"></div>
+          <div class="timeline-content glass-card">
+            <div class="timeline-header">
+              <h3>What's Next?</h3>
+              <span class="timeline-org">Open to Opportunities</span>
+            </div>
+            <span class="timeline-date">Present</span>
+            <p class="timeline-cta">I'm actively looking for full-time roles and internships in software development. <a href="#contact">Let's connect!</a></p>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ======== EDUCATION SECTION ======== -->
+  <section class="section education" id="education">
+    <div class="container">
+      <h2 class="section-title reveal">Education</h2>
+      <p class="section-subtitle reveal">My academic background</p>
+      <div class="education-grid">
+
+        <div class="education-card glass-card reveal">
+          <div class="education-icon">
+            <i data-lucide="graduation-cap"></i>
+          </div>
+          <h3>B.Tech — Chemical Engineering</h3>
+          <p class="education-minor">Minor in Mathematics & Computing</p>
+          <p class="education-institute">Indian Institute of Technology, Guwahati</p>
+          <div class="education-meta">
+            <span class="education-year">2021 — Present</span>
+            <span class="education-score">CGPA: <strong>8.03</strong></span>
+          </div>
+        </div>
+
+        <div class="education-card glass-card reveal">
+          <div class="education-icon">
+            <i data-lucide="school"></i>
+          </div>
+          <h3>Senior Secondary (XII)</h3>
+          <p class="education-institute">ISC Board</p>
+          <div class="education-meta">
+            <span class="education-year">2020</span>
+            <span class="education-score">Percentage: <strong>94.25%</strong></span>
+          </div>
+        </div>
+
+        <div class="education-card glass-card reveal">
+          <div class="education-icon">
+            <i data-lucide="school"></i>
+          </div>
+          <h3>Secondary (X)</h3>
+          <p class="education-institute">ICSE Board</p>
+          <div class="education-meta">
+            <span class="education-year">2018</span>
+            <span class="education-score">Percentage: <strong>92.67%</strong></span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ======== ACHIEVEMENTS SECTION ======== -->
+  <section class="section achievements" id="achievements">
+    <div class="container">
+      <h2 class="section-title reveal">Achievements</h2>
+      <p class="section-subtitle reveal">Milestones I'm proud of</p>
+
+      <!-- Counter Stats -->
+      <div class="achievement-counters reveal">
+        <div class="counter-card glass-card">
+          <span class="counter-number" data-target="1600" data-suffix="+">0</span>
+          <span class="counter-label">CodeChef Rating</span>
+        </div>
+        <div class="counter-card glass-card">
+          <span class="counter-number" data-target="58">0</span>
+          <span class="counter-label">Global Rank (Dec '22)</span>
+        </div>
+        <div class="counter-card glass-card">
+          <span class="counter-number" data-target="1700" data-suffix="+">0</span>
+          <span class="counter-label">LeetCode Rating</span>
+        </div>
+        <div class="counter-card glass-card">
+          <span class="counter-number" data-target="98.3" data-suffix="%" data-decimal="true">0</span>
+          <span class="counter-label">JEE Mains Percentile</span>
+        </div>
+      </div>
+
+      <!-- Achievement Cards -->
+      <div class="achievement-cards">
+        <div class="achievement-card glass-card reveal">
+          <div class="achievement-icon"><i data-lucide="trophy"></i></div>
+          <h3>CodeChef</h3>
+          <p>1600+ rating with a <strong>Global Rank 58</strong> in December Long Challenge 2022 — best individual performance.</p>
+        </div>
+        <div class="achievement-card glass-card reveal">
+          <div class="achievement-icon"><i data-lucide="code-2"></i></div>
+          <h3>LeetCode</h3>
+          <p>1700+ rated, ranking among the <strong>top 12%</strong> of all users globally.</p>
+        </div>
+        <div class="achievement-card glass-card reveal">
+          <div class="achievement-icon"><i data-lucide="award"></i></div>
+          <h3>JEE Advanced 2021</h3>
+          <p>Secured <strong>All India Rank 7764</strong> among 140,000 candidates in one of the world's toughest engineering exams.</p>
+        </div>
+        <div class="achievement-card glass-card reveal">
+          <div class="achievement-icon"><i data-lucide="zap"></i></div>
+          <h3>JEE Mains 2021</h3>
+          <p>Secured <strong>98.3 percentile</strong> among 950,000 candidates nationwide.</p>
+        </div>
+        <div class="achievement-card glass-card reveal">
+          <div class="achievement-icon"><i data-lucide="git-branch"></i></div>
+          <h3>Hacktoberfest 2022</h3>
+          <p>Successfully completed Hacktoberfest organized by <strong>DigitalOcean & GitHub</strong>.</p>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ======== CONTACT SECTION ======== -->
+  <section class="section contact" id="contact">
+    <div class="container">
+      <h2 class="section-title reveal">Get In Touch</h2>
+      <p class="section-subtitle reveal">Have a project in mind? Let's talk.</p>
+      <div class="contact-grid">
+        <div class="contact-info reveal">
+          <div class="contact-item glass-card">
+            <i data-lucide="mail"></i>
+            <div>
+              <h4>Email</h4>
+              <a href="mailto:raunak180803@gmail.com">raunak180803@gmail.com</a>
+            </div>
+          </div>
+          <div class="contact-item glass-card">
+            <i data-lucide="phone"></i>
+            <div>
+              <h4>Phone</h4>
+              <a href="tel:+919330656951">+91-9330656951</a>
+            </div>
+          </div>
+          <div class="contact-item glass-card">
+            <i data-lucide="map-pin"></i>
+            <div>
+              <h4>Location</h4>
+              <p>IIT Guwahati, Assam, India</p>
+            </div>
+          </div>
+          <div class="contact-socials">
+            <a href="https://github.com/RaunakAgarwal" target="_blank" rel="noopener" class="social-btn" aria-label="GitHub">
+              <i data-lucide="github"></i>
+            </a>
+            <a href="https://linkedin.com/in/raunak180803" target="_blank" rel="noopener" class="social-btn" aria-label="LinkedIn">
+              <i data-lucide="linkedin"></i>
+            </a>
+            <a href="https://youtube.com/" target="_blank" rel="noopener" class="social-btn" aria-label="YouTube">
+              <i data-lucide="youtube"></i>
+            </a>
+            <a href="mailto:raunak180803@gmail.com" class="social-btn" aria-label="Email">
+              <i data-lucide="mail"></i>
+            </a>
+          </div>
+        </div>
+        <form class="contact-form glass-card reveal" id="contact-form">
+          <!-- TODO: Add your Formspree endpoint to the action attribute -->
+          <!-- Example: action="https://formspree.io/f/YOUR_FORM_ID" method="POST" -->
+          <div class="form-group">
+            <label for="name">Your Name</label>
+            <input type="text" id="name" name="name" placeholder="John Doe" required />
+          </div>
+          <div class="form-group">
+            <label for="email">Your Email</label>
+            <input type="email" id="email" name="email" placeholder="john@example.com" required />
+          </div>
+          <div class="form-group">
+            <label for="subject">Subject</label>
+            <input type="text" id="subject" name="subject" placeholder="Project Discussion" />
+          </div>
+          <div class="form-group">
+            <label for="message">Message</label>
+            <textarea id="message" name="message" rows="5" placeholder="Tell me about your idea..." required></textarea>
+          </div>
+          <button type="submit" class="btn btn-primary btn-submit" id="submit-btn">
+            <span>Send Message</span>
+            <i data-lucide="send"></i>
+          </button>
+        </form>
+      </div>
+    </div>
+  </section>
+
+  <!-- ======== FOOTER ======== -->
+  <footer class="footer">
+    <div class="container">
+      <p>&copy; 2025 Raunak Agarwal. Built with passion & clean code.</p>
+    </div>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>

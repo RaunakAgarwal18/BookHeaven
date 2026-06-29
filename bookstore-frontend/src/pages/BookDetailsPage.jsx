@@ -19,8 +19,8 @@ const RelatedBooks = ({ category, currentBookId }) => {
   useEffect(() => {
     const fetchRelated = async () => {
       try {
-        const res = await apiClient.get(`/book/search?category=${encodeURIComponent(category)}&pageNumber=0&pageSize=5`);
-        const filtered = (res.data.content || []).filter(b => b.bookId !== currentBookId).slice(0, 4);
+        const res = await apiClient.get(`/search?q=${encodeURIComponent(category)}&pageNumber=0&pageSize=5`);
+        const filtered = (res.data.content || []).filter(b => String(b.bookId) !== String(currentBookId)).slice(0, 4);
         setBooks(filtered);
       } catch (err) {
         console.error('Failed to fetch related books', err);
@@ -47,8 +47,8 @@ const RelatedBooks = ({ category, currentBookId }) => {
           <div key={book.bookId}>
             <BookCard
               book={book}
-              onAddToCart={(id) => addToCart(id, 1)}
-              isWishlisted={wishlistIds.has(book.bookId)}
+              onAddToCart={(id) => handleAddToCart(id)}
+              isWishlisted={wishlistIds.has(String(book.bookId))}
               onToggleWishlist={toggleWishlist}
             />
           </div>
@@ -780,14 +780,14 @@ const BookDetailsPage = () => {
     fetchBookAndOffers();
   }, [id]);
 
-  const handleAddToCart = async (targetBookId) => {
+  const handleAddToCart = async (targetListingId) => {
     if (!isAuthenticated) {
       navigate('/login');
       return;
     }
     
-    setAddingToCartId(targetBookId);
-    await addToCart(targetBookId, 1);
+    setAddingToCartId(targetListingId);
+    await addToCart(targetListingId, 1);
     setAddingToCartId(null);
     
     const cartError = useCartStore.getState().error;
@@ -818,10 +818,10 @@ const BookDetailsPage = () => {
 
 
 
-  const isWishlisted = book ? wishlistIds.has(book.bookId) : false;
+  const isWishlisted = book ? wishlistIds.has(String(book.bookId)) : false;
 
   return (
-    <div className="container mt-8 mb-8">
+    <div style={{ width: '100%', maxWidth: '1500px', margin: '2rem auto', padding: '0 2rem 4rem 2rem' }}>
       {cartMessage && (
         <div style={{
           position: 'fixed',

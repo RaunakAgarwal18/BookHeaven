@@ -4,7 +4,7 @@ import com.bookheaven.review_service.repository.ReviewRepository;
 import com.bookheaven.review_service.dto.requestDto.AddReviewRequest;
 import com.bookheaven.review_service.dto.ResponseDto.ReviewResponse;
 import com.bookheaven.review_service.dto.requestDto.UpdateReviewRequest;
-import com.bookheaven.review_service.dto.event.BookRatingUpdateEvent;
+import com.bookheaven.common.dto.event.BookRatingUpdateEvent;
 import com.bookheaven.review_service.entity.Review;
 import com.bookheaven.review_service.exception.DuplicateReviewException;
 import com.bookheaven.review_service.exception.ReviewNotFoundException;
@@ -106,6 +106,11 @@ public class ReviewServiceImpl implements ReviewService {
 
     @Override
     @Transactional
+    @org.springframework.retry.annotation.Retryable(
+            retryFor = org.springframework.orm.ObjectOptimisticLockingFailureException.class,
+            maxAttempts = 3,
+            backoff = @org.springframework.retry.annotation.Backoff(delay = 100)
+    )
     public ReviewResponse toggleUpvote(Authentication authentication, Long id) {
         UUID userId = jwtUtil.extractId((String) authentication.getCredentials());
         Review review = reviewRepository.findById(id)
@@ -136,13 +141,19 @@ public class ReviewServiceImpl implements ReviewService {
                     .totalReviews(totalReviews)
                     .build();
 
-            rabbitTemplate.convertAndSend(
-                RabbitMQConfig.RATING_UPDATE_EXCHANGE, 
-                RabbitMQConfig.RATING_UPDATE_ROUTING_KEY, 
-                event
+            org.springframework.transaction.support.TransactionSynchronizationManager.registerSynchronization(
+                new org.springframework.transaction.support.TransactionSynchronization() {
+                    @Override
+                    public void afterCommit() {
+                        rabbitTemplate.convertAndSend(
+                            RabbitMQConfig.RATING_UPDATE_EXCHANGE, 
+                            RabbitMQConfig.RATING_UPDATE_ROUTING_KEY, 
+                            event
+                        );
+                        log.info("Successfully published rating update event for bookId: {}", bookId);
+                    }
+                }
             );
-            
-            log.info("Successfully published rating update event for bookId: {}", bookId);
         } catch (Exception e) {
             log.error("Failed to publish rating update event for bookId: {}", bookId, e);
         }

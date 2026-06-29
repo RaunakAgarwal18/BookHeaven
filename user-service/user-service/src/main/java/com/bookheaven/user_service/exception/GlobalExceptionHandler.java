@@ -1,7 +1,7 @@
 package com.bookheaven.user_service.exception;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.bookheaven.user_service.dto.ErrorResponse;
+import com.bookheaven.common.dto.response.ErrorResponse;
 import jakarta.mail.MessagingException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -118,3 +118,5 @@ public class GlobalExceptionHandler {
         );
     }
 }
+
+

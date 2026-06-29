@@ -1,6 +1,6 @@
 package com.bookheaven.cart_service.controller;
 
-import com.bookheaven.cart_service.dto.cartResponseDto.CartResponse;
+import com.bookheaven.common.dto.response.CartResponse;
 import com.bookheaven.cart_service.dto.requestDto.AddToCartRequest;
 import com.bookheaven.cart_service.dto.requestDto.UpdateCartRequest;
 import com.bookheaven.cart_service.service.CartService;

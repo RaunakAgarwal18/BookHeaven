@@ -2,6 +2,8 @@ package com.bookheaven.book_service.util;
 
 import com.bookheaven.book_service.dto.requestDto.AddBookRequest;
 import com.bookheaven.book_service.dto.responseDto.*;
+import com.bookheaven.common.dto.response.PaginatedResponse;
+import com.bookheaven.common.dto.response.BookPublicResponse;
 import com.bookheaven.book_service.entity.Book;
 import com.bookheaven.book_service.entity.SellerListing;
 import com.bookheaven.book_service.service.BookService;
@@ -38,7 +40,8 @@ public class AppUtil {
                 .averageRating(book.getAverageRating())
                 .totalReviews(book.getTotalReviews());
         if (cheapestListing != null) {
-            builder.lowestPrice(cheapestListing.getPrice())
+            builder.cheapestListingId(cheapestListing.getId())
+                   .lowestPrice(cheapestListing.getPrice())
                    .lowestCurrency(cheapestListing.getCurrency())
                    .totalCopiesAvailable(cheapestListing.getCopiesAvailable());
         }

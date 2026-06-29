@@ -15,5 +15,6 @@ public interface CouponService {
     CouponResponse toggleCouponStatus(UUID id, Authentication authentication);
     void validateCoupon(String code, Double subtotal);
     void incrementUsage(String code);
+    void decrementUsage(String code);
     void deleteCoupon(UUID id, Authentication authentication);
 }

@@ -1,7 +1,7 @@
 package com.bookheaven.email_service.util;
 
 import com.openhtmltopdf.pdfboxout.PdfRendererBuilder;
-import com.bookheaven.email_service.dto.event.OrderShippedEvent;
+import com.bookheaven.common.dto.event.OrderShippedEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;

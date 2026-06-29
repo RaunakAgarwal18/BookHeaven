@@ -1,6 +1,6 @@
 package com.bookheaven.cart_service.service;
 
-import com.bookheaven.cart_service.dto.cartResponseDto.CartResponse;
+import com.bookheaven.common.dto.response.CartResponse;
 
 import java.util.UUID;
 

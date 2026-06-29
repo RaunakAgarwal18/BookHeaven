@@ -4,6 +4,7 @@ import com.bookheaven.cart_service.entity.Coupon;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
@@ -17,4 +18,12 @@ public interface CouponRepository extends JpaRepository<Coupon, UUID> {
     @Modifying
     @Query("UPDATE Coupon c SET c.isActive = false WHERE c.expiryDate < :now AND c.isActive = true")
     int deactivateExpiredCoupons(LocalDateTime now);
+
+    @Modifying
+    @Query("UPDATE Coupon c SET c.usageCount = c.usageCount + 1 WHERE c.code = :code AND c.usageCount < c.usageLimit AND c.isActive = true")
+    int incrementUsageAtomic(@Param("code") String code);
+
+    @Modifying
+    @Query("UPDATE Coupon c SET c.usageCount = c.usageCount - 1 WHERE c.code = :code AND c.usageCount > 0")
+    int decrementUsageAtomic(@Param("code") String code);
 }

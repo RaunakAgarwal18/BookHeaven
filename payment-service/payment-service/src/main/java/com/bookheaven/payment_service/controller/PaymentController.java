@@ -1,8 +1,8 @@
 package com.bookheaven.payment_service.controller;
 
-import com.bookheaven.payment_service.dto.requestDto.InitiatePaymentRequest;
+import com.bookheaven.common.dto.request.InitiatePaymentRequest;
 import com.bookheaven.payment_service.dto.requestDto.RefundRequest;
-import com.bookheaven.payment_service.dto.responseDto.InitiatePaymentResponse;
+import com.bookheaven.common.dto.response.InitiatePaymentResponse;
 import com.bookheaven.payment_service.dto.responseDto.PaymentResponse;
 import com.bookheaven.payment_service.service.PaymentService;
 import com.bookheaven.payment_service.component.EndOfDaySettlementScheduler;

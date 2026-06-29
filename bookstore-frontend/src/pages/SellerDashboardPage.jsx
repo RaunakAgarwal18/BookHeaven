@@ -122,11 +122,13 @@ const SellerDashboardPage = () => {
 
   const fetchSellerOrders = async () => {
     setOrdersLoading(true);
+    setError(''); // Clear previous errors
     try {
       const res = await apiClient.get('/order/seller');
       setOrders(res.data.content || []);
     } catch (err) {
       console.error('Failed to load seller orders', err);
+      setError(err.response?.data?.message || 'Failed to connect to the order service. Please check if the server is running.');
     } finally {
       setOrdersLoading(false);
     }
@@ -350,7 +352,7 @@ const SellerDashboardPage = () => {
   };
 
   return (
-    <div className="container mt-8 mb-8">
+    <div style={{ width: '100%', maxWidth: '1500px', margin: '2rem auto', padding: '0 2rem 4rem 2rem' }}>
       {/* Header Section */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
         <div>
@@ -449,7 +451,10 @@ const SellerDashboardPage = () => {
                     </td>
                     <td style={{ padding: '1rem' }}>{book.isbn}</td>
                     <td style={{ padding: '1rem' }}>{book.category}</td>
-                    <td style={{ padding: '1rem' }}>{book.copiesAvailable} / {book.copies}</td>
+                    <td style={{ padding: '1rem', color: book.copiesAvailable === 0 ? 'var(--danger-color)' : 'inherit' }}>
+                      {book.copiesAvailable} / {book.copies}
+                      {book.copiesAvailable === 0 && <span style={{ marginLeft: '8px', fontSize: '0.75rem', padding: '2px 6px', background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', borderRadius: '4px' }}>Out of Stock</span>}
+                    </td>
                     <td style={{ padding: '1rem', fontWeight: '600' }}>{book.currency} {book.price.toFixed(2)}</td>
                     <td style={{ padding: '1rem', textAlign: 'center' }}>
                       <div style={{ display: 'flex', justifyContent: 'center', gap: '0.75rem' }}>
@@ -478,6 +483,12 @@ const SellerDashboardPage = () => {
       {activeTab === 'sales' && (
         ordersLoading ? (
           <div className="text-center py-8">Loading sales orders...</div>
+        ) : error ? (
+          <div className="card text-center py-8" style={{ backgroundColor: 'rgba(239, 68, 68, 0.05)', border: '1px solid rgba(239, 68, 68, 0.2)' }}>
+            <AlertTriangle size={48} style={{ color: 'var(--danger-color)', margin: '0 auto 1rem', opacity: 0.8 }} />
+            <h3 style={{ color: '#ef4444', marginBottom: '0.5rem' }}>Failed to load orders</h3>
+            <p style={{ color: 'var(--text-muted)' }}>{error}</p>
+          </div>
         ) : orders.length > 0 ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
             {orders.filter(o => o.status !== 'FAILED').map(order => {
@@ -516,38 +527,72 @@ const SellerDashboardPage = () => {
                     {/* Action Panel for fulfillment */}
                     <div>
                       {sellerStatus === 'CONFIRMED' && (
-                        <button 
-                          onClick={() => handleUpdateOrderStatus(order.id, 'SHIPPED')}
-                          style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '0.4rem',
-                            padding: '0.5rem 1rem',
-                            backgroundColor: 'rgba(168, 85, 247, 0.2)',
-                            color: '#a855f7',
-                            border: '1px solid rgba(168, 85, 247, 0.4)',
-                            fontSize: '0.85rem'
-                          }}
-                        >
-                          <Truck size={14} /> Ship Order Items
-                        </button>
+                        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                          <button 
+                            onClick={() => handleUpdateOrderStatus(order.id, 'SHIPPED')}
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '0.4rem',
+                              padding: '0.5rem 1rem',
+                              backgroundColor: 'rgba(168, 85, 247, 0.2)',
+                              color: '#a855f7',
+                              border: '1px solid rgba(168, 85, 247, 0.4)',
+                              fontSize: '0.85rem'
+                            }}
+                          >
+                            <Truck size={14} /> Ship Order Items
+                          </button>
+                          <button 
+                            onClick={() => handleUpdateOrderStatus(order.id, 'REFUNDED')}
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '0.4rem',
+                              padding: '0.5rem 1rem',
+                              backgroundColor: 'rgba(239, 68, 68, 0.2)',
+                              color: '#ef4444',
+                              border: '1px solid rgba(239, 68, 68, 0.4)',
+                              fontSize: '0.85rem'
+                            }}
+                          >
+                            <X size={14} /> Cancel & Refund
+                          </button>
+                        </div>
                       )}
                       {sellerStatus === 'SHIPPED' && (
-                        <button 
-                          onClick={() => handleUpdateOrderStatus(order.id, 'DELIVERED')}
-                          style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '0.4rem',
-                            padding: '0.5rem 1rem',
-                            backgroundColor: 'rgba(34, 197, 94, 0.2)',
-                            color: '#22c55e',
-                            border: '1px solid rgba(34, 197, 94, 0.4)',
-                            fontSize: '0.85rem'
-                          }}
-                        >
-                          <Check size={14} /> Mark as Delivered
-                        </button>
+                        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                          <button 
+                            onClick={() => handleUpdateOrderStatus(order.id, 'DELIVERED')}
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '0.4rem',
+                              padding: '0.5rem 1rem',
+                              backgroundColor: 'rgba(34, 197, 94, 0.2)',
+                              color: '#22c55e',
+                              border: '1px solid rgba(34, 197, 94, 0.4)',
+                              fontSize: '0.85rem'
+                            }}
+                          >
+                            <Check size={14} /> Mark as Delivered
+                          </button>
+                          <button 
+                            onClick={() => handleUpdateOrderStatus(order.id, 'REFUNDED')}
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '0.4rem',
+                              padding: '0.5rem 1rem',
+                              backgroundColor: 'rgba(239, 68, 68, 0.2)',
+                              color: '#ef4444',
+                              border: '1px solid rgba(239, 68, 68, 0.4)',
+                              fontSize: '0.85rem'
+                            }}
+                          >
+                            <X size={14} /> Cancel & Refund
+                          </button>
+                        </div>
                       )}
                       {['DELIVERED', 'CANCELLED', 'FAILED', 'REFUNDED', 'PENDING'].includes(sellerStatus) && (
                         <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
@@ -592,7 +637,20 @@ const SellerDashboardPage = () => {
                         {order.items.map((item, idx) => (
                           <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.75rem', backgroundColor: 'rgba(255,255,255,0.02)', borderRadius: '6px', fontSize: '0.9rem' }}>
                             <div>
-                              <div style={{ fontWeight: '600' }}>{item.title}</div>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: '600' }}>
+                                {item.title}
+                                {item.status && (
+                                  <span style={{ 
+                                    display: 'inline-flex', alignItems: 'center', gap: '0.2rem',
+                                    padding: '0.15rem 0.4rem', borderRadius: '4px',
+                                    backgroundColor: getStatusStyle(item.status).bg,
+                                    color: getStatusStyle(item.status).color,
+                                    fontSize: '0.7rem', fontWeight: 'bold'
+                                  }}>
+                                    {getStatusStyle(item.status).icon} {item.status}
+                                  </span>
+                                )}
+                              </div>
                               <div style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>Qty: {item.quantity} x {item.currency} {item.price.toFixed(2)}</div>
                             </div>
                             <div style={{ fontWeight: '600', color: 'var(--primary-color)' }}>

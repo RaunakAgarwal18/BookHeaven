@@ -1,7 +1,7 @@
 package com.bookheaven.user_service.service.impl;
 
 import com.bookheaven.user_service.dto.requestDto.ForgotPasswordRequest;
-import com.bookheaven.user_service.dto.requestDto.PasswordResetRequest;
+import com.bookheaven.common.dto.request.PasswordResetRequest;
 import com.bookheaven.user_service.dto.requestDto.ResetPasswordRequest;
 import com.bookheaven.user_service.entity.User;
 import com.bookheaven.user_service.exception.UserNotFoundException;

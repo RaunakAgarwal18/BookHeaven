@@ -6,7 +6,7 @@ import org.springframework.amqp.support.converter.Jackson2JsonMessageConverter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-import static com.bookheaven.order_service.constants.RabbitMqConstant.*;
+import static com.bookheaven.common.constant.RabbitMqConstant.*;
 
 @Configuration
 public class RabbitMqConfig {

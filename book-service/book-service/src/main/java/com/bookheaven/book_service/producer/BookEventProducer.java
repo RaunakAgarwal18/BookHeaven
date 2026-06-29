@@ -1,6 +1,6 @@
 package com.bookheaven.book_service.producer;
 
-import com.bookheaven.book_service.dto.responseDto.BookPublicResponse;
+import com.bookheaven.common.dto.response.BookPublicResponse;
 import com.bookheaven.book_service.entity.Book;
 import com.bookheaven.book_service.entity.SellerListing;
 import com.bookheaven.book_service.repository.BookRepository;

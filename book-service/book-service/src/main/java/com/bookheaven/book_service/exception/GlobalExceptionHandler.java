@@ -1,6 +1,6 @@
 package com.bookheaven.book_service.exception;
 
-import com.bookheaven.book_service.dto.ErrorResponse;
+import com.bookheaven.common.dto.response.ErrorResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -55,3 +55,5 @@ public class GlobalExceptionHandler {
         );
     }
 }
+
+

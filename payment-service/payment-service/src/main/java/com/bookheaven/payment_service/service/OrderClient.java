@@ -62,4 +62,22 @@ public class OrderClient {
         log.error("Circuit breaker tripped for failOrder", t);
         throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "Order service is temporarily unavailable. Please try again later.", t);
     }
+
+    @CircuitBreaker(name = "orderService", fallbackMethod = "fallbackCompleteRefund")
+    public void completeRefund(UUID orderId) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.add("X-Service-Secret", serviceSecret);
+        HttpEntity<Void> request = new HttpEntity<>(headers);
+        restTemplate.exchange(
+                orderServiceUrl + orderId + "/refund-complete",
+                HttpMethod.PUT,
+                request,
+                Void.class
+        );
+    }
+
+    public void fallbackCompleteRefund(UUID orderId, Throwable t) {
+        log.error("Circuit breaker tripped for completeRefund", t);
+        throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "Order service is temporarily unavailable. Please try again later.", t);
+    }
 }

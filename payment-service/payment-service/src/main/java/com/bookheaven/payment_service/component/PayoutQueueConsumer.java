@@ -1,7 +1,7 @@
 package com.bookheaven.payment_service.component;
 
-import com.bookheaven.payment_service.dto.event.SellerPayoutEvent;
-import com.bookheaven.payment_service.dto.responseDto.UserResponse;
+import com.bookheaven.common.dto.event.SellerPayoutEvent;
+import com.bookheaven.common.dto.response.UserResponse;
 import com.bookheaven.payment_service.entity.SellerLedger;
 import com.bookheaven.payment_service.repository.SellerLedgerRepository;
 import com.bookheaven.payment_service.service.UserClient;
@@ -15,7 +15,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
-import com.bookheaven.payment_service.dto.event.MissingRazorpayIdEvent;
+import com.bookheaven.common.dto.event.MissingRazorpayIdEvent;
 
 @Component
 @RequiredArgsConstructor
@@ -26,6 +26,12 @@ public class PayoutQueueConsumer {
     private final RazorpayClient razorpayClient;
     private final UserClient userClient;
     private final RabbitTemplate rabbitTemplate;
+
+    @org.springframework.beans.factory.annotation.Value("${razorpay.key.id}")
+    private String keyId;
+
+    @org.springframework.beans.factory.annotation.Value("${razorpay.key.secret}")
+    private String keySecret;
 
     @RabbitListener(queues = "seller-payout-queue")
     @Transactional
@@ -74,7 +80,13 @@ public class PayoutQueueConsumer {
             transferRequest.put("notes", notes);
 
             // 3. Call Razorpay Transfers API
-            Transfer transfer = razorpayClient.transfers.create(transferRequest);
+            RazorpayClient scopedClient = new RazorpayClient(keyId, keySecret);
+            java.util.Map<String, String> headers = new java.util.HashMap<>();
+            String idempotencyKey = event.getEventId() != null ? event.getEventId().toString() : java.util.UUID.randomUUID().toString();
+            headers.put("X-Payout-Idempotency", idempotencyKey);
+            scopedClient.addHeaders(headers);
+
+            Transfer transfer = scopedClient.transfers.create(transferRequest);
             String gatewayTransferId = transfer.get("id");
 
             log.info("Successfully executed transfer. Razorpay Transfer ID: {}", gatewayTransferId);

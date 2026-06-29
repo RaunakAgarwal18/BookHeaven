@@ -1,6 +1,6 @@
 package com.bookheaven.order_service.service.clientService;
 
-import com.bookheaven.order_service.dto.cartResponseDto.CartResponse;
+import com.bookheaven.common.dto.response.CartResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
@@ -83,7 +83,26 @@ public class CartClient {
         if (couponCode == null || couponCode.isBlank()) return;
         HttpHeaders headers = createHeaders();
         HttpEntity<?> request = new HttpEntity<>(headers);
-        String couponUrl = "http://CART-SERVICE/api/coupons/" + couponCode + "/increment-usage";
+        String couponUrl = cartServiceUrl + "/api/coupons/" + couponCode + "/increment-usage";
+        restTemplate.exchange(
+                couponUrl,
+                HttpMethod.POST,
+                request,
+                Void.class
+        );
+    }
+
+    public void fallbackIncrementCouponUsage(String couponCode, Throwable t) {
+        log.error("Circuit breaker tripped for incrementCouponUsage", t);
+        throw new RuntimeException("Coupon limit reached or cart-service unavailable");
+    }
+
+    @CircuitBreaker(name = "cartService", fallbackMethod = "fallbackDecrementCouponUsage")
+    public void decrementCouponUsage(String couponCode) {
+        if (couponCode == null || couponCode.isBlank()) return;
+        HttpHeaders headers = createHeaders();
+        HttpEntity<?> request = new HttpEntity<>(headers);
+        String couponUrl = cartServiceUrl + "/api/coupons/" + couponCode + "/decrement-usage";
         try {
             restTemplate.exchange(
                     couponUrl,
@@ -92,13 +111,11 @@ public class CartClient {
                     Void.class
             );
         } catch (Exception e) {
-            // Log but do not fail order confirmation
-            log.error("Failed to increment coupon usage: " + e.getMessage());
+            log.error("Failed to decrement coupon usage: " + e.getMessage());
         }
     }
 
-    public void fallbackIncrementCouponUsage(String couponCode, Throwable t) {
-        log.error("Circuit breaker tripped for incrementCouponUsage", t);
-        // Do not fail the order just because coupon usage increment failed
+    public void fallbackDecrementCouponUsage(String couponCode, Throwable t) {
+        log.error("Circuit breaker tripped for decrementCouponUsage", t);
     }
 }

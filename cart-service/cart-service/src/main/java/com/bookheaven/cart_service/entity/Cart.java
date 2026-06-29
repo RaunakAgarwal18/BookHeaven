@@ -52,6 +52,10 @@ public class Cart {
     @Column(name = "applied_coupon_code", length = 50)
     private String appliedCouponCode;
 
+    @Version
+    @Column(name = "version")
+    private long version;
+
     // Helper methods (important for consistency)
     public void addItem(CartItem item) {
         item.setCart(this);

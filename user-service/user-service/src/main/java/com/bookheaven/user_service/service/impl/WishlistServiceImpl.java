@@ -1,6 +1,6 @@
 package com.bookheaven.user_service.service.impl;
 
-import com.bookheaven.user_service.dto.BookDto;
+import com.bookheaven.common.dto.response.BookPublicResponse;
 import com.bookheaven.user_service.entity.User;
 import com.bookheaven.user_service.service.UserService;
 import com.bookheaven.user_service.service.WishlistService;
@@ -43,7 +43,7 @@ public class WishlistServiceImpl implements WishlistService {
     }
 
     @Override
-    public List<BookDto> getWishlistDetails(Authentication authentication) {
+    public List<BookPublicResponse> getWishlistDetails(Authentication authentication) {
         User user = userService.getSelfUser(authentication);
         List<Long> bookIds = new ArrayList<>(user.getWishlist());
         return bookClient.getBulkBooks(bookIds);

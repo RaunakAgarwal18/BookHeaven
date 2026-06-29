@@ -22,8 +22,11 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .httpBasic(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/api/cart/internal/**").hasRole("SYSTEM")
                         .requestMatchers("/api/cart/**").authenticated()
-                        .requestMatchers("/api/coupons/**").authenticated()
+                        .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/coupons").authenticated()
+                        .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/coupons/**").authenticated()
+                        .requestMatchers("/api/coupons/**").hasAnyRole("SELLER", "ADMIN")
                         .anyRequest().permitAll()
                 )
                 .addFilterBefore(filter, UsernamePasswordAuthenticationFilter.class);

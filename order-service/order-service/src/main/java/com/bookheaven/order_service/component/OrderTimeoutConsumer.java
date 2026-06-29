@@ -1,8 +1,9 @@
 package com.bookheaven.order_service.component;
 
-import com.bookheaven.order_service.dto.Event.OrderTimeoutEvent;
-import com.bookheaven.order_service.dto.Event.PaymentFailedEvent;
+import com.bookheaven.common.dto.event.OrderTimeoutEvent;
+import com.bookheaven.common.dto.event.PaymentFailedEvent;
 import com.bookheaven.order_service.entity.Order;
+import com.bookheaven.order_service.exception.OrderNotFoundException;
 import com.bookheaven.order_service.service.impl.OrderEventProducer;
 import com.bookheaven.order_service.service.OrderService;
 import lombok.RequiredArgsConstructor;
@@ -10,7 +11,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.stereotype.Component;
 
-import static com.bookheaven.order_service.constants.RabbitMqConstant.*;
+import static com.bookheaven.common.constant.RabbitMqConstant.*;
 
 @Slf4j
 @Component
@@ -25,14 +26,13 @@ public class OrderTimeoutConsumer {
         Order order;
         try {
             order = orderService.getOrderById(event.getOrderId());
-        } catch (com.bookheaven.order_service.exception.OrderNotFoundException e) {
+        } catch (OrderNotFoundException e) {
             log.warn("Order {} not found during timeout processing. It may have been rolled back or deleted. Ignoring timeout.", event.getOrderId());
             return;
         }
         if (order.getStatus() == Order.OrderStatus.PENDING) {
             // Payment never completed — cancel the order
-            order.setStatus(Order.OrderStatus.FAILED);
-            orderService.saveOrder(order);
+            orderService.failOrder(order.getId(), "Payment timeout after 15 minutes");
 
             PaymentFailedEvent paymentFailedEvent = new PaymentFailedEvent();
             paymentFailedEvent.setTo(order.getEmail());

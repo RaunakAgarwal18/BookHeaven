@@ -4,7 +4,7 @@ import com.bookheaven.user_service.dto.requestDto.AddressRequest;
 import com.bookheaven.user_service.dto.requestDto.ChangePasswordRequest;
 import com.bookheaven.user_service.dto.requestDto.ContactRequest;
 import com.bookheaven.user_service.dto.requestDto.UpdateUserRequest;
-import com.bookheaven.user_service.dto.responseDto.UserResponse;
+import com.bookheaven.common.dto.response.UserResponse;
 import com.bookheaven.user_service.service.AddressService;
 import com.bookheaven.user_service.service.ContactFormService;
 import com.bookheaven.user_service.service.UserService;
@@ -114,7 +114,7 @@ public class UserController {
     }
 
     @GetMapping("/wishlist/details")
-    public ResponseEntity<java.util.List<com.bookheaven.user_service.dto.BookDto>> getWishlistDetails(Authentication authentication) {
+    public ResponseEntity<java.util.List<com.bookheaven.common.dto.response.BookPublicResponse>> getWishlistDetails(Authentication authentication) {
         return ResponseEntity.ok(wishlistService.getWishlistDetails(authentication));
     }
 }

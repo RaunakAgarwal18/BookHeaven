@@ -1,10 +1,12 @@
 package com.bookheaven.book_service.controller;
 
 import com.bookheaven.book_service.dto.requestDto.AddBookRequest;
-import com.bookheaven.book_service.dto.requestDto.StockUpdateRequest;
+import com.bookheaven.common.dto.request.StockUpdateRequest;
 import com.bookheaven.book_service.dto.requestDto.UpdateBookRequest;
 import com.bookheaven.book_service.dto.requestDto.UpdateListingRequest;
 import com.bookheaven.book_service.dto.responseDto.*;
+import com.bookheaven.common.dto.response.PaginatedResponse;
+import com.bookheaven.common.dto.response.BookPublicResponse;
 import com.bookheaven.book_service.entity.Book;
 import com.bookheaven.book_service.entity.SellerListing;
 import com.bookheaven.book_service.service.BookService;
@@ -44,18 +46,7 @@ public class BookController {
         return ResponseEntity.ok(response);
     }
 
-    /** Search */
-    @GetMapping("/search")
-    public ResponseEntity<PaginatedResponse<BookPublicResponse>> searchBooks(
-            @RequestParam(required = false) String title,
-            @RequestParam(required = false) String author,
-            @RequestParam(required = false) String category,
-            @RequestParam(required = false) String isbn,
-            @RequestParam(required = false) Integer pageNumber,
-            @RequestParam(required = false) Integer pageSize) {
-        PaginatedResponse<BookPublicResponse> books = bookService.searchBooks(title, author, category, isbn, pageNumber, pageSize);
-        return ResponseEntity.ok(books);
-    }
+
 
     // ===================== SELLER ENDPOINTS =====================
 
@@ -110,6 +101,9 @@ public class BookController {
     public ResponseEntity<BookDetailResponse> updateBookMetadata(
             @PathVariable Long bookId,
             @RequestBody UpdateBookRequest dto) {
+        if (!checkIsAdmin()) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
         Book book = bookService.updateBookMetadata(bookId, dto);
         List<SellerListing> listings = bookService.getListingsForBook(bookId);
         return ResponseEntity.ok(AppUtil.toDetailResponse(book, listings));

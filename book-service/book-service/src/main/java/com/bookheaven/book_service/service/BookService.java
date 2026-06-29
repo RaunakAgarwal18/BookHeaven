@@ -1,12 +1,12 @@
 package com.bookheaven.book_service.service;
 
 import com.bookheaven.book_service.dto.requestDto.AddBookRequest;
-import com.bookheaven.book_service.dto.requestDto.StockUpdateRequest;
+import com.bookheaven.common.dto.request.StockUpdateRequest;
 import com.bookheaven.book_service.dto.requestDto.UpdateBookRequest;
 import com.bookheaven.book_service.dto.requestDto.UpdateListingRequest;
 import com.bookheaven.book_service.dto.responseDto.BookDetailResponse;
-import com.bookheaven.book_service.dto.responseDto.BookPublicResponse;
-import com.bookheaven.book_service.dto.responseDto.PaginatedResponse;
+import com.bookheaven.common.dto.response.BookPublicResponse;
+import com.bookheaven.common.dto.response.PaginatedResponse;
 import com.bookheaven.book_service.entity.Book;
 import com.bookheaven.book_service.entity.SellerListing;
 import org.springframework.data.domain.Page;
@@ -36,7 +36,6 @@ public interface BookService {
     // Public queries
     Page<Book> getAllBooks(Pageable  pageable);
     public PaginatedResponse<BookPublicResponse> getAllBooksPublicResponse(Integer pageNumber, Integer pageSize);
-    public PaginatedResponse<BookPublicResponse> searchBooks(String title, String author, String category, String isbn, Integer pageNumber, Integer pageSize);
     Book getBookById(Long bookId);
     public BookDetailResponse getBookByIdDetails(Long bookId);
 
@@ -53,7 +52,7 @@ public interface BookService {
     void updateBookRating(Long bookId, Double averageRating, Integer totalReviews);
 
     // Internal: bulk fetch canonical books by ID (for wishlist)
-    List<com.bookheaven.book_service.dto.responseDto.BookPublicResponse> getBulkBooks(List<Long> bookIds);
+    List<BookPublicResponse> getBulkBooks(List<Long> bookIds);
 
     // Sync all existing books to search engine
     void syncAllBooksToSearch();

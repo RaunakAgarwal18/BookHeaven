@@ -1,6 +1,6 @@
 package com.bookheaven.order_service.service;
 
-import com.bookheaven.order_service.dto.Event.*;
+import com.bookheaven.common.dto.event.*;
 import com.bookheaven.order_service.entity.Order;
 import com.bookheaven.order_service.entity.OrderItem;
 import com.bookheaven.order_service.entity.ShippingAddress;
@@ -22,11 +22,18 @@ public class OrderEventMapper {
                 + addr.getState() + " " + addr.getZipCode() + ", " + addr.getCountry();
     }
 
+    private String getDisplayOrderId(Order order) {
+        if (order.getOrderReference() != null && !order.getOrderReference().trim().isEmpty()) {
+            return order.getOrderReference();
+        }
+        return order.getId().toString().substring(0, 8) + "...";
+    }
+
     public OrderConfirmedEvent buildConfirmedEvent(Order order) {
         OrderConfirmedEvent event = new OrderConfirmedEvent();
         event.setTo(order.getEmail());
         event.setUsername(order.getUsername());
-        event.setOrderId(order.getOrderReference());
+        event.setOrderId(getDisplayOrderId(order));
         event.setShippingAddress(formatAddress(order.getShippingAddress()));
         return event;
     }
@@ -51,7 +58,7 @@ public class OrderEventMapper {
         return OrderShippedEvent.builder()
                 .to(order.getEmail())
                 .username(order.getUsername())
-                .orderId(order.getOrderReference())
+                .orderId(getDisplayOrderId(order))
                 .shippingAddress(formatAddress(order.getShippingAddress()))
                 .subtotal(order.getSubtotal())
                 .taxAmount(order.getTaxAmount())
@@ -84,7 +91,7 @@ public class OrderEventMapper {
         return OrderDeliveredEvent.builder()
                 .to(order.getEmail())
                 .username(order.getUsername())
-                .orderId(order.getOrderReference())
+                .orderId(getDisplayOrderId(order))
                 .shippingAddress(formatAddress(order.getShippingAddress()))
                 .items(deliveredItems)
                 .newlyDeliveredItems(newlyDeliveredItems)

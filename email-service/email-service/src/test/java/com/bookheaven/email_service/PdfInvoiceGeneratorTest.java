@@ -1,6 +1,6 @@
 package com.bookheaven.email_service;
 
-import com.bookheaven.email_service.dto.event.OrderShippedEvent;
+import com.bookheaven.common.dto.event.OrderShippedEvent;
 import com.bookheaven.email_service.util.PdfInvoiceGenerator;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
